@@ -18,10 +18,12 @@ export default function SetupPage({
   maxPerSection,
   teacherMaxLectures,
   validation,
+  globalTeacherUsed,
+  globalTeacherExceeds,
   onNext,
   onPrev,
 }) {
-  const { sectionErrors, globalTeacherExceeds, hasErrors } = validation;
+  const { sectionErrors, hasErrors } = validation;
 
   if (sections.length === 0) {
     return (
@@ -117,6 +119,8 @@ export default function SetupPage({
             maxPerSection={maxPerSection}
             teacherMaxLectures={teacherMaxLectures}
             sectionValidation={sectionErrors[sec.id]}
+            globalTeacherUsed={globalTeacherUsed}
+            globalTeacherExceeds={globalTeacherExceeds}
           />
         ))}
       </div>

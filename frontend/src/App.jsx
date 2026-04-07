@@ -191,15 +191,22 @@ export default function App() {
           )}
           {activePage === 'setup' && (
             <SetupPage
-              sections={sections} onAddSection={addSection}
-              onRemoveSection={removeSection} onUpdateSection={updateSection}
-              onAddSubject={addSubject} onRemoveSubject={removeSubject}
-              onAddTeacher={addTeacher} onRemoveTeacher={removeTeacher}
+              sections={sections}
+              onAddSection={addSection}
+              onRemoveSection={removeSection}
+              onUpdateSection={updateSection}
+              onAddSubject={addSubject}
+              onRemoveSubject={removeSubject}
+              onAddTeacher={addTeacher}
+              onRemoveTeacher={removeTeacher}
               onUpdateMapping={updateMapping}
               maxPerSection={maxPerSection}
               teacherMaxLectures={teacherMaxLectures}
               validation={validation}
-              onNext={goNext} onPrev={goPrev}
+              globalTeacherUsed={validation.globalTeacherUsed}
+              globalTeacherExceeds={validation.globalTeacherExceeds}
+              onNext={goNext}
+              onPrev={goPrev}
             />
           )}
           {activePage === 'review' && (

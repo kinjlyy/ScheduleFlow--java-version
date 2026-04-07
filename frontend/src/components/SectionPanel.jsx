@@ -15,7 +15,9 @@ export default function SectionPanel({
   // Validation props from App
   maxPerSection,
   teacherMaxLectures,
-  sectionValidation, // { totalUsed, totalExceeds, teacherUsed, teacherExceeds }
+  sectionValidation, // { totalUsed, totalExceeds }
+  globalTeacherUsed,
+  globalTeacherExceeds,
 }) {
   const [subjInput, setSubjInput] = useState('');
   const [teachInput, setTeachInput] = useState('');
@@ -35,8 +37,6 @@ export default function SectionPanel({
   const teacherOptions = section.teachers.map(t => ({ value: t, label: t }));
   const totalUsed = sectionValidation?.totalUsed ?? 0;
   const totalExceeds = sectionValidation?.totalExceeds ?? false;
-  const teacherExceeds = sectionValidation?.teacherExceeds ?? {};
-  const teacherUsed = sectionValidation?.teacherUsed ?? {};
   const pct = maxPerSection > 0 ? Math.min(100, Math.round((totalUsed / maxPerSection) * 100)) : 0;
   const barColor = totalExceeds ? '#e05252' : pct >= 80 ? '#d97706' : 'var(--teal)';
 
@@ -101,7 +101,7 @@ export default function SectionPanel({
       <FieldLabel>Teachers</FieldLabel>
       <div className={styles.tags}>
         {section.teachers.map(t => {
-          const exceeded = !!teacherExceeds[t];
+          const exceeded = !!globalTeacherExceeds[t];
           return (
             <span key={t} className={`${styles.teacher_tag_wrap}`}>
               <Tag
@@ -158,11 +158,15 @@ export default function SectionPanel({
           )}
 
           {/* Per-teacher cap violations */}
-          {Object.entries(teacherExceeds).map(([t, { used, cap }]) => (
-            <div key={t} className={styles.teacher_cap_error}>
-              ⛔ <strong>{t}</strong> is assigned {used} lectures but their cap is {cap}.
-            </div>
-          ))}
+          {/* Global teacher cap violations related to this section */}
+          {section.teachers.filter(t => globalTeacherExceeds[t]).map(t => {
+            const { used, cap } = globalTeacherExceeds[t];
+            return (
+              <div key={t} className={styles.teacher_cap_error}>
+                ⛔ <strong>{t}</strong> (Global): assigned {used} lectures but their cap is {cap}.
+              </div>
+            );
+          })}
 
           <div className={styles.map_wrap}>
             <table className={styles.map_table}>
@@ -203,8 +207,8 @@ export default function SectionPanel({
                       </td>
                       <td>
                         {m.teacher ? (
-                          <span className={`${styles.cap_pill} ${tOver ? styles.cap_pill_over : ''}`}>
-                            {tUsed} / {tCap}
+                          <span className={`${styles.cap_pill} ${globalTeacherExceeds[m.teacher] ? styles.cap_pill_over : ''}`}>
+                            {globalTeacherUsed[m.teacher] || 0} / {teacherMaxLectures[m.teacher] ?? maxPerSection}
                           </span>
                         ) : (
                           <span className={styles.no_teacher_hint}>—</span>

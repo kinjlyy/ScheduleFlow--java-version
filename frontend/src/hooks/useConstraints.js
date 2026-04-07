@@ -9,31 +9,50 @@ export function useConstraints() {
 
   const maxPerSection = daysPerWeek * periodsPerDay;
 
-  // When days/periods change, update ALL existing teacher maxes to new max
+  // When days/periods change, update teacher maxes but PRESERVE custom overrides
   const setDaysPerWeek = useCallback((val) => {
     const v = Number(val);
+    const oldMax = daysPerWeek * periodsPerDay;
+    const newMax = v * periodsPerDay;
     setDaysPerWeekRaw(v);
     setTeacherMaxLectures(prev => {
-      const next = {};
-      Object.keys(prev).forEach(t => { next[t] = v * periodsPerDay; });
+      const next = { ...prev };
+      Object.keys(next).forEach(t => {
+        // If teacher was at old max, update to new max
+        if (next[t] === oldMax) {
+          next[t] = newMax;
+        } else {
+          // If teacher had custom limit, cap it at the new max
+          next[t] = Math.min(next[t], newMax);
+        }
+      });
       return next;
     });
-  }, [periodsPerDay]);
+  }, [daysPerWeek, periodsPerDay]);
 
   const setPeriodsPerDay = useCallback((val) => {
     const v = Number(val);
+    const oldMax = daysPerWeek * periodsPerDay;
+    const newMax = daysPerWeek * v;
     setPeriodsPerDayRaw(v);
     setTeacherMaxLectures(prev => {
-      const next = {};
-      Object.keys(prev).forEach(t => { next[t] = daysPerWeek * v; });
+      const next = { ...prev };
+      Object.keys(next).forEach(t => {
+        if (next[t] === oldMax) {
+          next[t] = newMax;
+        } else {
+          next[t] = Math.min(next[t], newMax);
+        }
+      });
       return next;
     });
-  }, [daysPerWeek]);
+  }, [daysPerWeek, periodsPerDay]);
 
-  // Allow manual override of a single teacher's max
+  // Allow manual override of a single teacher's max (must be <= maxPerSection)
   const setTeacherMax = useCallback((teacher, value) => {
-    setTeacherMaxLectures(prev => ({ ...prev, [teacher]: Number(value) }));
-  }, []);
+    const v = Math.min(Number(value), daysPerWeek * periodsPerDay);
+    setTeacherMaxLectures(prev => ({ ...prev, [teacher]: v }));
+  }, [daysPerWeek, periodsPerDay]);
 
   // Called whenever section teachers change — new teachers get maxPerSection as default
   const syncTeachers = useCallback((allTeachers, currentDays, currentPeriods) => {
