@@ -181,11 +181,9 @@ export default function SectionPanel({
               <tbody>
                 {section.subjects.map(subj => {
                   const m = section.mapping[subj] || { teacher: '', lecturesPerWeek: 4 };
-                  const tUsed = m.teacher ? (teacherUsed[m.teacher] || 0) : null;
-                  const tCap = m.teacher ? (teacherMaxLectures[m.teacher] ?? maxPerSection) : null;
-                  const tOver = tUsed !== null && tUsed > tCap;
+                  const isOver = m.teacher && globalTeacherExceeds[m.teacher];
                   return (
-                    <tr key={subj} className={tOver ? styles.row_error : ''}>
+                    <tr key={subj} className={isOver ? styles.row_error : ''}>
                       <td className={styles.subj_cell}>{subj}</td>
                       <td>
                         <Select
