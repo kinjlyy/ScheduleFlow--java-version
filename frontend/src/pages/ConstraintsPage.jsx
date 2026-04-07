@@ -72,7 +72,7 @@ export default function ConstraintsPage({
 
         {allTeachers.length === 0 ? (
           <div className={styles.no_teachers}>
-            <span className={styles.no_teachers_icon}>Teachers</span>
+            <span className={styles.no_teachers_icon}>👩‍🏫</span>
             <span>No teachers added yet — they'll appear here after you set up sections in Step 2.</span>
           </div>
         ) : (

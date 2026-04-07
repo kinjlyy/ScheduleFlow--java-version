@@ -38,6 +38,25 @@ export default function LandingPage({ onGetStarted }) {
           </div>
         </div>
 
+        {/* Feature Cards */}
+        <div className={styles.features}>
+          <div className={styles.feature_card}>
+            <div className={styles.feature_icon}>🚀</div>
+            <h3>Smart Scheduling</h3>
+            <p>Our algorithms distribute lectures based on your availability and constraints instantly.</p>
+          </div>
+          <div className={styles.feature_card}>
+            <div className={styles.feature_icon}>📅</div>
+            <h3>Constraint Management</h3>
+            <p>Set weekly caps for teachers and schedule dimensions with ease.</p>
+          </div>
+          <div className={styles.feature_card}>
+            <div className={styles.feature_icon}>👩‍🏫</div>
+            <h3>Real-time Validation</h3>
+            <p>See violations as you type, ensuring a conflict-free timetable every time.</p>
+          </div>
+        </div>
+
         {/* Dashboard preview mockup */}
         <div className={styles.mockup_wrap}>
           <div className={styles.mockup}>

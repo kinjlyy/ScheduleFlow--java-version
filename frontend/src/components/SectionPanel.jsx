@@ -142,17 +142,17 @@ export default function SectionPanel({
           </div>
           {totalExceeds && (
             <div className={styles.budget_error}>
-              Error: Total lectures ({totalUsed}) exceed the max allowed ({maxPerSection}).
+              ⛔ Error: Total lectures ({totalUsed}) exceed the max allowed ({maxPerSection}).
               Reduce lecture counts below.
             </div>
           )}
           {!totalExceeds && pct >= 80 && totalUsed > 0 && (
             <div className={styles.budget_warn}>
-              Warning: Approaching limit — {maxPerSection - totalUsed} slot{maxPerSection - totalUsed !== 1 ? 's' : ''} remaining.
+              ⚠️ Warning: Approaching limit — {maxPerSection - totalUsed} slot{maxPerSection - totalUsed !== 1 ? 's' : ''} remaining.
             </div>
           )}
 
-          <FieldLabel style={{ marginTop: 14 }}>Map Subjects to Teachers &amp; Lectures/Week</FieldLabel>
+          <FieldLabel style={{ marginTop: 14 }}>Map Subjects ➜ Teachers &amp; Lectures/Week</FieldLabel>
           {section.teachers.length === 0 && (
             <Alert type="warn">Add at least one teacher to assign subjects.</Alert>
           )}
@@ -163,7 +163,7 @@ export default function SectionPanel({
             const { used, cap } = globalTeacherExceeds[t];
             return (
               <div key={t} className={styles.teacher_cap_error}>
-                Limit Reached: <strong>{t}</strong> (Global): assigned {used} lectures but their cap is {cap}.
+                ⛔ Limit Reached: <strong>{t}</strong> (Global): assigned {used} lectures but their cap is {cap}.
               </div>
             );
           })}

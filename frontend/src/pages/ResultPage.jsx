@@ -52,7 +52,7 @@ export default function ResultPage({
       <div className={styles.step_badge}>Step 4 of 4</div>
 
       <div className={styles.top_bar}>
-        <SectionTitle>Generated Timetable</SectionTitle>
+        <SectionTitle>📅 Generated Timetable</SectionTitle>
         <div className={styles.top_actions}>
           {sections.length > 0 && (
             <select

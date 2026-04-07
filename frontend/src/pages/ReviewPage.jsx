@@ -80,7 +80,7 @@ export default function ReviewPage({ sections, validation, onNext, onPrev, maxPe
                   return (
                     <div key={subj} className={styles.mapping_item}>
                       <span className={styles.subj_name}>{subj}</span>
-                      <span className={styles.divider}>&rarr;</span>
+                      <span className={styles.divider}>➜</span>
                       <div className={styles.teacher_info}>
                         <span className={`${styles.t_name} ${teacherErr ? styles.t_error : ''}`}>
                           {m.teacher || 'Unassigned'}
@@ -94,7 +94,7 @@ export default function ReviewPage({ sections, validation, onNext, onPrev, maxPe
 
               {errs.totalExceeds && (
                 <div className={styles.err_banner}>
-                  Error: Budget exceeded ({errs.totalUsed}/{maxPerSection})
+                  ⛔ Error: Budget exceeded ({errs.totalUsed}/{maxPerSection})
                 </div>
               )}
             </Card>
@@ -105,8 +105,8 @@ export default function ReviewPage({ sections, validation, onNext, onPrev, maxPe
       <StepFooter
         onPrev={onPrev}
         onNext={onNext}
-        prevLabel="Back to Setup"
-        nextLabel="Next: Generate"
+        prevLabel="← Back to Setup"
+        nextLabel="Next: Generate →"
         nextDisabled={hasErrors}
         nextWarning={hasErrors ? "Fix violations before generating" : null}
       />

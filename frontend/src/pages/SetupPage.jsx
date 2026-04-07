@@ -101,7 +101,7 @@ export default function SetupPage({
         <div className={styles.summary_item}>
           <span className={styles.summary_label}>Status</span>
           <span className={`${styles.summary_status} ${hasErrors ? styles.status_error : styles.status_ok}`}>
-            {hasErrors ? 'Violations found' : 'All valid'}
+            {hasErrors ? '⚠ Violations found' : '✓ All valid'}
           </span>
         </div>
       </div>
