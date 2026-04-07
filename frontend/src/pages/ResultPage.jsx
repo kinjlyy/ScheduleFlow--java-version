@@ -146,26 +146,33 @@ export default function ResultPage({
         <Alert type="success">✅ Timetable generated with zero conflicts!</Alert>
       )}
 
-      {/* Timetable */}
+      {/* Timetables Rendering */}
       {result?.timetable && !loading && (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-            <FieldLabel>
-              {filterSectionId
-                ? `Section: ${sections.find(s => s.id === filterSectionId)?.name || filterSectionId}`
-                : 'All Sections'}
-            </FieldLabel>
-          </div>
-          <div style={{ padding: '16px' }}>
-            <TimetableGrid
-              timetable={result.timetable}
-              sections={sections}
-              periodsPerDay={periodsPerDay}
-              daysPerWeek={daysPerWeek}
-              filterSectionId={filterSectionId || null}
-            />
-          </div>
-        </Card>
+        <div className={styles.grid_container}>
+          {(filterSectionId 
+            ? sections.filter(s => s.id === filterSectionId)
+            : sections
+          ).map(sec => (
+            <Card key={sec.id} style={{ padding: 0, overflow: 'hidden' }}>
+              <div className={styles.sec_card_header}>
+                <div className={styles.sec_card_title}>
+                  Section: {sec.name || sec.id}
+                </div>
+                <div className={styles.sec_card_meta}>
+                  {result.timetable[sec.id] ? 'Generated Successfully' : 'No Data'}
+                </div>
+              </div>
+              <div style={{ padding: '20px' }}>
+                <TimetableGrid
+                  timetable={result.timetable}
+                  sectionId={sec.id}
+                  periodsPerDay={periodsPerDay}
+                  daysPerWeek={daysPerWeek}
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Empty state */}

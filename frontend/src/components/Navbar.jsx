@@ -7,7 +7,6 @@ export default function Navbar({ userName, onDashboard, onLogout }) {
     <nav className={styles.nav}>
       <button className={styles.logo} onClick={onDashboard}>
         <div className={styles.logo_wrap}>
-          <div className={styles.logo_icon}>📅</div>
           <h1 className={styles.logo_text}>ScheduleFlow</h1>
         </div>
       </button>
