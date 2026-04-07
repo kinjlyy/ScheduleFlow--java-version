@@ -42,7 +42,7 @@ export default function LoginPage({ onLogin, onBack }) {
     <div className={styles.root}>
       {/* Left panel */}
       <div className={styles.left}>
-        <button className={styles.back_btn} onClick={onBack}>← Back to Home</button>
+        <button className={styles.back_btn} onClick={onBack}>Back to Home</button>
         <div className={styles.brand}>
           <span className={styles.brand_logo}>ScheduleFlow</span>
           <p className={styles.brand_tag}>Smart TimeTable Mapping, Effortless Event Management</p>
@@ -61,7 +61,7 @@ export default function LoginPage({ onLogin, onBack }) {
               <span className={styles.illo_dot} style={{background:'#059669'}} />
               <span className={styles.illo_bar} style={{width:'45%'}} />
             </div>
-            <div className={styles.illo_label}>Conflict-free Timetable Generated ✓</div>
+            <div className={styles.illo_label}>Conflict-free Timetable Generated</div>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function LoginPage({ onLogin, onBack }) {
             )}
 
             <button className={styles.submit_btn} type="submit">
-              {tab === 'login' ? 'Sign In →' : 'Create Account →'}
+              {tab === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 

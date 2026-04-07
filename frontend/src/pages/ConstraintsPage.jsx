@@ -16,7 +16,7 @@ export default function ConstraintsPage({
     <div className={styles.page}>
       {/* Step badge */}
       <div className={styles.step_badge}>Step 1 of 4</div>
-      <SectionTitle>⚙️ Set Constraints First</SectionTitle>
+      <SectionTitle>Set Constraints First</SectionTitle>
       <p className={styles.intro}>
         Define your schedule boundaries before entering section data. These limits will be
         enforced in real-time as you build your timetable.
@@ -72,7 +72,7 @@ export default function ConstraintsPage({
 
         {allTeachers.length === 0 ? (
           <div className={styles.no_teachers}>
-            <span className={styles.no_teachers_icon}>👩‍🏫</span>
+            <span className={styles.no_teachers_icon}>Teachers</span>
             <span>No teachers added yet — they'll appear here after you set up sections in Step 2.</span>
           </div>
         ) : (
@@ -112,7 +112,7 @@ export default function ConstraintsPage({
 
       <StepFooter
         onNext={onNext}
-        nextLabel="Next: Setup Sections →"
+        nextLabel="Next: Setup Sections"
         showPrev={false}
       />
     </div>

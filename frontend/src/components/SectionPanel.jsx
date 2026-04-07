@@ -48,10 +48,10 @@ export default function SectionPanel({
           <span className={styles.title}>
             {section.name ? `Section ${section.name}` : 'New Section'}
           </span>
-          {totalExceeds && <span className={styles.error_badge}>⚠ Over Limit</span>}
-          {!totalExceeds && totalUsed > 0 && <span className={styles.ok_badge}>✓ Within Limits</span>}
+          {totalExceeds && <span className={styles.error_badge}>Over Limit</span>}
+          {!totalExceeds && totalUsed > 0 && <span className={styles.ok_badge}>Within Limits</span>}
         </div>
-        <Button variant="danger" size="icon" onClick={() => onRemove(section.id)} title="Delete section">🗑</Button>
+        <Button variant="danger" size="icon" onClick={() => onRemove(section.id)} title="Delete section">Delete</Button>
       </div>
 
       {/* Name + Capacity */}
@@ -105,7 +105,7 @@ export default function SectionPanel({
           return (
             <span key={t} className={`${styles.teacher_tag_wrap}`}>
               <Tag
-                label={`${t}${exceeded ? ' ⚠' : ''}`}
+                label={`${t}${exceeded ? ' (Limit Exceeded)' : ''}`}
                 onRemove={() => onRemoveTeacher(section.id, t)}
               />
             </span>
@@ -142,17 +142,17 @@ export default function SectionPanel({
           </div>
           {totalExceeds && (
             <div className={styles.budget_error}>
-              ⛔ Total lectures ({totalUsed}) exceed the max allowed ({maxPerSection}).
+              Error: Total lectures ({totalUsed}) exceed the max allowed ({maxPerSection}).
               Reduce lecture counts below.
             </div>
           )}
           {!totalExceeds && pct >= 80 && totalUsed > 0 && (
             <div className={styles.budget_warn}>
-              ⚠️ Approaching limit — {maxPerSection - totalUsed} slot{maxPerSection - totalUsed !== 1 ? 's' : ''} remaining.
+              Warning: Approaching limit — {maxPerSection - totalUsed} slot{maxPerSection - totalUsed !== 1 ? 's' : ''} remaining.
             </div>
           )}
 
-          <FieldLabel style={{ marginTop: 14 }}>Map Subjects → Teachers &amp; Lectures/Week</FieldLabel>
+          <FieldLabel style={{ marginTop: 14 }}>Map Subjects to Teachers &amp; Lectures/Week</FieldLabel>
           {section.teachers.length === 0 && (
             <Alert type="warn">Add at least one teacher to assign subjects.</Alert>
           )}
@@ -163,7 +163,7 @@ export default function SectionPanel({
             const { used, cap } = globalTeacherExceeds[t];
             return (
               <div key={t} className={styles.teacher_cap_error}>
-                ⛔ <strong>{t}</strong> (Global): assigned {used} lectures but their cap is {cap}.
+                Limit Reached: <strong>{t}</strong> (Global): assigned {used} lectures but their cap is {cap}.
               </div>
             );
           })}

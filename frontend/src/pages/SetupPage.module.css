@@ -75,7 +75,54 @@
 .status_error { color: var(--danger); }
 
 .panels { display: flex; flex-direction: column; gap: 20px; }
-.add_row { display: flex; justify-content: flex-start; }
+
+.add_row {
+  margin-top: 2rem;
+  padding-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.add_controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  border: 1px border rgba(255, 255, 255, 0.1);
+}
+
+.copy_wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.copy_label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.copy_select {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.copy_select:hover {
+  border-color: var(--teal);
+}
+
+.header_actions {
+  display: flex;
+  gap: 1rem;
+}
 
 /* Empty state */
 .empty {

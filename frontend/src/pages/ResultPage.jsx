@@ -52,7 +52,7 @@ export default function ResultPage({
       <div className={styles.step_badge}>Step 4 of 4</div>
 
       <div className={styles.top_bar}>
-        <SectionTitle>📅 Generated Timetable</SectionTitle>
+        <SectionTitle>Generated Timetable</SectionTitle>
         <div className={styles.top_actions}>
           {sections.length > 0 && (
             <select
@@ -71,10 +71,10 @@ export default function ResultPage({
             onClick={onGenerate}
             disabled={loading || sections.length === 0}
           >
-            {loading ? '⏳ Generating…' : '⚡ Re-generate'}
+            {loading ? 'Generating...' : 'Re-generate'}
           </Button>
           {result?.timetable && (
-            <Button variant="outline" onClick={handleDownloadCSV}>⬇️ Download CSV</Button>
+            <Button variant="outline" onClick={handleDownloadCSV}>Download CSV</Button>
           )}
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function ResultPage({
       {/* Error */}
       {error && (
         <Alert type="error">
-          ❌ {error}
+          {error}
           <div style={{ marginTop: 6, fontSize: '0.82rem' }}>
             Make sure the Java backend is running on <code>http://localhost:8080</code>
           </div>

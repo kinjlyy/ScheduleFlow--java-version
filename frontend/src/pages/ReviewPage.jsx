@@ -1,11 +1,15 @@
 // src/pages/ReviewPage.jsx
 import React from 'react';
-import { Card, Tag, SectionTitle } from '../components/UI.jsx';
+import { Card, SectionTitle, Divider } from '../components/UI.jsx';
 import StepFooter from '../components/StepFooter.jsx';
 import styles from './ReviewPage.module.css';
 
-export default function ReviewPage({ sections, validation, onNext, onPrev }) {
-  const { sectionErrors, hasErrors } = validation || { sectionErrors: {}, hasErrors: false };
+export default function ReviewPage({ sections, validation, onNext, onPrev, maxPerSection }) {
+  const { sectionErrors, globalTeacherExceeds, hasErrors } = validation || { 
+    sectionErrors: {}, 
+    globalTeacherExceeds: {}, 
+    hasErrors: false 
+  };
 
   if (sections.length === 0) {
     return (
@@ -16,8 +20,8 @@ export default function ReviewPage({ sections, validation, onNext, onPrev }) {
         <StepFooter
           onPrev={onPrev}
           onNext={onNext}
-          prevLabel="← Back to Setup"
-          nextLabel="Generate Timetable →"
+          prevLabel="Back to Setup"
+          nextLabel="Next: Generate"
           nextDisabled={true}
         />
       </div>
@@ -27,85 +31,71 @@ export default function ReviewPage({ sections, validation, onNext, onPrev }) {
   return (
     <div className={styles.page}>
       <div className={styles.step_badge}>Step 3 of 4</div>
-      <SectionTitle>📋 Review All Sections</SectionTitle>
+      <SectionTitle>Review All Sections</SectionTitle>
       <p className={styles.intro}>
-        Confirm everything looks correct before generating the timetable.
-        {hasErrors && ' Fix all constraint violations in Setup before proceeding.'}
+        Final check before generation. Ensure all sections are valid and teacher loads
+        are within their caps.
       </p>
+
+      {/* Summary Stats */}
+      <div className={styles.summary_row}>
+        <div className={styles.stat_card}>
+          <span className={styles.stat_label}>Total Sections</span>
+          <span className={styles.stat_val}>{sections.length}</span>
+        </div>
+        <div className={styles.stat_card}>
+          <span className={styles.stat_label}>Validation Status</span>
+          <span className={`${styles.stat_val} ${hasErrors ? styles.val_error : styles.val_ok}`}>
+            {hasErrors ? 'Action Required' : 'Ready to Generate'}
+          </span>
+        </div>
+      </div>
 
       <div className={styles.grid}>
         {sections.map(sec => {
           const errs = sectionErrors[sec.id] || {};
-          const hasErr = errs.totalExceeds || Object.keys(errs.teacherExceeds || {}).length > 0;
+          const isOver = errs.totalExceeds || Object.keys(errs.teacherExceeds || {}).length > 0;
           return (
-            <Card key={sec.id} className={`${styles.sec_card} ${hasErr ? styles.card_err : ''}`}>
+            <Card key={sec.id} className={isOver ? styles.card_error : ''}>
               <div className={styles.card_header}>
-                <span className={styles.sec_name}>{sec.name || '(unnamed)'}</span>
-                <div className={styles.card_badges}>
-                  <span className={styles.cap_badge}>Cap: {sec.capacity || '—'}</span>
-                  {hasErr
-                    ? <span className={styles.err_badge}>⚠ Violations</span>
-                    : <span className={styles.ok_badge}>✓ OK</span>
-                  }
+                <h3 className={styles.sec_name}>Section {sec.name || sec.id}</h3>
+                {isOver ? (
+                  <span className={styles.badge_error}>Action Required</span>
+                ) : (
+                  <span className={styles.badge_ok}>Valid</span>
+                )}
+              </div>
+
+              <div className={styles.sec_stats}>
+                <span>Capacity: {sec.capacity || '—'}</span>
+                <span>Subjects: {sec.subjects.length}</span>
+              </div>
+
+              <Divider />
+
+              <div className={styles.mapping_list}>
+                {sec.subjects.map(subj => {
+                  const m = sec.mapping[subj] || {};
+                  const teacherErr = globalTeacherExceeds?.[m.teacher];
+                  return (
+                    <div key={subj} className={styles.mapping_item}>
+                      <span className={styles.subj_name}>{subj}</span>
+                      <span className={styles.divider}>&rarr;</span>
+                      <div className={styles.teacher_info}>
+                        <span className={`${styles.t_name} ${teacherErr ? styles.t_error : ''}`}>
+                          {m.teacher || 'Unassigned'}
+                        </span>
+                        <span className={styles.t_lec}>{m.lecturesPerWeek} lec/wk</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {errs.totalExceeds && (
+                <div className={styles.err_banner}>
+                  Error: Budget exceeded ({errs.totalUsed}/{maxPerSection})
                 </div>
-              </div>
-
-              {/* Budget bar */}
-              {errs.totalUsed !== undefined && (
-                <div className={styles.mini_budget}>
-                  <div className={styles.mini_bar_track}>
-                    <div
-                      className={styles.mini_bar_fill}
-                      style={{
-                        width: `${Math.min(100, Math.round((errs.totalUsed / (errs.totalUsed + 1)) * 100))}%`,
-                        background: errs.totalExceeds ? 'var(--danger)' : 'var(--teal)'
-                      }}
-                    />
-                  </div>
-                  <span className={`${styles.mini_count} ${errs.totalExceeds ? styles.over : ''}`}>
-                    {errs.totalUsed} lectures/week
-                  </span>
-                </div>
-              )}
-
-              <div className={styles.sub_label}>Subjects</div>
-              <div className={styles.tag_row}>
-                {sec.subjects.length > 0
-                  ? sec.subjects.map(s => <Tag key={s} label={s} />)
-                  : <span className={styles.none}>None</span>}
-              </div>
-
-              <div className={styles.sub_label}>Teachers</div>
-              <div className={styles.tag_row}>
-                {sec.teachers.length > 0
-                  ? sec.teachers.map(t => {
-                      const tOver = !!(errs.teacherExceeds?.[t]);
-                      return <Tag key={t} label={tOver ? `⚠ ${t}` : t} />;
-                    })
-                  : <span className={styles.none}>None</span>}
-              </div>
-
-              {sec.subjects.length > 0 && (
-                <>
-                  <div className={styles.sub_label}>Subject–Teacher Mapping</div>
-                  <table className={styles.map_table}>
-                    <thead>
-                      <tr><th>Subject</th><th>Teacher</th><th>Lec/wk</th></tr>
-                    </thead>
-                    <tbody>
-                      {sec.subjects.map(subj => {
-                        const m = sec.mapping[subj] || {};
-                        return (
-                          <tr key={subj}>
-                            <td>{subj}</td>
-                            <td>{m.teacher || <span className={styles.none}>—</span>}</td>
-                            <td>{m.lecturesPerWeek ?? '—'}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </>
               )}
             </Card>
           );
@@ -115,12 +105,11 @@ export default function ReviewPage({ sections, validation, onNext, onPrev }) {
       <StepFooter
         onPrev={onPrev}
         onNext={onNext}
-        prevLabel="← Back to Setup"
-        nextLabel="⚡ Generate Timetable →"
+        prevLabel="Back to Setup"
+        nextLabel="Next: Generate"
         nextDisabled={hasErrors}
-        nextWarning={hasErrors ? 'Fix constraint violations before generating' : null}
+        nextWarning={hasErrors ? "Fix violations before generating" : null}
       />
     </div>
   );
 }
-

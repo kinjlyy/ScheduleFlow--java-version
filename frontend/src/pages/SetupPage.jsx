@@ -8,6 +8,7 @@ import styles from './SetupPage.module.css';
 export default function SetupPage({
   sections,
   onAddSection,
+  onCopySection,
   onRemoveSection,
   onUpdateSection,
   onAddSubject,
@@ -29,7 +30,7 @@ export default function SetupPage({
     return (
       <div className={styles.page}>
         <div className={styles.empty}>
-          <div className={styles.empty_icon}>📅</div>
+          <div className={styles.empty_icon}>Calendar</div>
           <div className={styles.empty_title}>No sections yet</div>
           <p className={styles.empty_sub}>Click below to create your first section.</p>
           <Button variant="primary" size="lg" onClick={onAddSection}>+ Add Section</Button>
@@ -37,7 +38,7 @@ export default function SetupPage({
         <StepFooter
           onPrev={onPrev}
           onNext={onNext}
-          nextLabel="Next: Review →"
+          nextLabel="Next: Review"
           nextDisabled={true}
           nextWarning="Add at least one section first"
         />
@@ -66,13 +67,15 @@ export default function SetupPage({
             All values are checked against your constraints in real-time.
           </p>
         </div>
-        <Button variant="outline" onClick={onAddSection}>+ Add Section</Button>
+        <div className={styles.header_actions}>
+          <Button variant="outline" onClick={onAddSection}>+ Add Blank Section</Button>
+        </div>
       </div>
 
       {/* Global teacher cap violations */}
       {Object.keys(globalTeacherExceeds).length > 0 && (
         <div className={styles.global_error}>
-          <div className={styles.global_error_title}>⛔ Global Teacher Cap Violations</div>
+          <div className={styles.global_error_title}>Global Teacher Cap Violations</div>
           {Object.entries(globalTeacherExceeds).map(([t, { used, cap }]) => (
             <div key={t} className={styles.global_error_row}>
               <strong>{t}</strong> is assigned <strong>{used}</strong> lectures across all sections,
@@ -98,7 +101,7 @@ export default function SetupPage({
         <div className={styles.summary_item}>
           <span className={styles.summary_label}>Status</span>
           <span className={`${styles.summary_status} ${hasErrors ? styles.status_error : styles.status_ok}`}>
-            {hasErrors ? '⚠ Violations found' : '✓ All valid'}
+            {hasErrors ? 'Violations found' : 'All valid'}
           </span>
         </div>
       </div>
@@ -126,14 +129,36 @@ export default function SetupPage({
       </div>
 
       <div className={styles.add_row}>
-        <Button variant="outline" onClick={onAddSection}>+ Add Another Section</Button>
+        <div className={styles.add_controls}>
+          <Button variant="outline" onClick={onAddSection}>+ Add Blank Section</Button>
+          {sections.length > 0 && (
+            <div className={styles.copy_wrap}>
+              <span className={styles.copy_label}>Or copy from:</span>
+              <select 
+                className={styles.copy_select}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onCopySection(e.target.value);
+                    e.target.value = ''; // reset after copy
+                  }
+                }}
+                defaultValue=""
+              >
+                <option value="" disabled>-- Select Section --</option>
+                {sections.map(s => (
+                  <option key={s.id} value={s.id}>{s.name || s.id}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       <StepFooter
         onPrev={onPrev}
         onNext={onNext}
-        prevLabel="← Back to Constraints"
-        nextLabel="Next: Review →"
+        prevLabel="Back to Constraints"
+        nextLabel="Next: Review"
         nextDisabled={hasErrors}
         nextWarning={nextWarning}
       />

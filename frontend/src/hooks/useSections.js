@@ -21,6 +21,23 @@ export function useSections() {
     setSections(prev => [...prev, EMPTY_SECTION()]);
   }, []);
 
+  const duplicateSection = useCallback((sourceId) => {
+    setSections(prev => {
+      const source = prev.find(s => s.id === sourceId);
+      if (!source) return prev;
+      
+      const copy = {
+        ...source,
+        id: nextId(),
+        name: source.name ? `${source.name} (Copy)` : '',
+        // Deep copy mapping to ensure mutations don't affect parent
+        mapping: JSON.parse(JSON.stringify(source.mapping))
+      };
+      
+      return [...prev, copy];
+    });
+  }, []);
+
   const removeSection = useCallback((id) => {
     setSections(prev => prev.filter(s => s.id !== id));
   }, []);
@@ -113,6 +130,7 @@ export function useSections() {
   return {
     sections,
     addSection,
+    duplicateSection,
     removeSection,
     updateSection,
     addSubject,

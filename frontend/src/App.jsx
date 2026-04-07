@@ -31,7 +31,7 @@ export default function App() {
   const [error, setError]   = useState(null);
 
   const {
-    sections, addSection, removeSection, updateSection,
+    sections, addSection, duplicateSection, removeSection, updateSection,
     addSubject, removeSubject, addTeacher, removeTeacher,
     updateMapping, toApiPayload,
   } = useSections();
@@ -193,6 +193,7 @@ export default function App() {
             <SetupPage
               sections={sections}
               onAddSection={addSection}
+              onCopySection={duplicateSection}
               onRemoveSection={removeSection}
               onUpdateSection={updateSection}
               onAddSubject={addSubject}

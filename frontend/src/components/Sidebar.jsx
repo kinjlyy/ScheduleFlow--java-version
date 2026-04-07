@@ -44,7 +44,6 @@ export default function Sidebar({
               onClick={() => onNavigate(item.id)}
             >
               <span className={styles.step_num}>{item.step}</span>
-              <span className={styles.nav_icon}>{item.icon}</span>
               <span className={styles.nav_label}>{item.label}</span>
               {showError && <span className={styles.error_dot} title="Violations" />}
             </button>
