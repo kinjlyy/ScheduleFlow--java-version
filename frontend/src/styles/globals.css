@@ -1,0 +1,58 @@
+/* ============================================
+   ScheduleFlow — Global Styles
+   ============================================ */
+:root {
+  --teal:        #0ABFBC;
+  --teal-dark:   #089a97;
+  --teal-light:  #e0f7f7;
+  --teal-mid:    #b2ebea;
+  --bg:          #f5ede6;
+  --bg2:         #ede4dc;
+  --bg3:         #e4d9d0;
+  --white:       #ffffff;
+  --card:        #ffffff;
+  --text:        #1a1a1a;
+  --text2:       #444;
+  --muted:       #888;
+  --border:      #e0d8d0;
+  --danger:      #e05252;
+  --danger-bg:   #fdeaea;
+  --success:     #059669;
+  --success-bg:  #d1fae5;
+  --warn-bg:     #fffbeb;
+  --warn-text:   #92400e;
+  --warn-border: #fde68a;
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.07);
+  --shadow:      0 2px 16px rgba(0,0,0,0.09);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.12);
+  --radius-sm:   6px;
+  --radius:      12px;
+  --radius-lg:   18px;
+  --font-body:   'Inter', sans-serif;
+  --font-display:'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--teal-mid); border-radius: 99px; }
+
+/* Utility */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}

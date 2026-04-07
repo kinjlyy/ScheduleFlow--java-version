@@ -1,0 +1,87 @@
+/* src/components/TimetableGrid.module.css */
+.wrap { overflow-x: auto; }
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 650px;
+  font-size: 0.84rem;
+}
+
+.th {
+  background: var(--bg2);
+  padding: 10px 14px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: var(--text2);
+  border: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sec_cell {
+  background: var(--bg3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+  color: var(--teal-dark);
+}
+
+.day_cell {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text2);
+  white-space: nowrap;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  text-align: center;
+}
+
+.period_cell {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: center;
+  vertical-align: middle;
+  background: var(--white);
+  transition: background 0.13s;
+}
+.period_cell:hover { background: var(--teal-light); }
+
+.free_cell {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: center;
+  background: #f0fdf4;
+}
+
+.free_label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #10b981;
+}
+
+.cell_subj {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.cell_teacher {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.row_even .day_cell,
+.row_even .period_cell,
+.row_even .free_cell {
+  background-color: #fafaf9;
+}
+.row_even .period_cell:hover { background: var(--teal-light); }
