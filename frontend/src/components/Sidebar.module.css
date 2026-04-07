@@ -14,22 +14,28 @@
 .dash_back {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 12px 14px;
   background: var(--bg2);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
   width: 100%;
   text-align: left;
-  transition: background 0.13s, color 0.13s;
+  transition: all 0.2s;
 }
-.dash_back:hover { background: var(--teal-light); color: var(--teal); }
+.dash_back:hover { 
+  background: var(--white); 
+  color: var(--teal);
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateX(-2px);
+}
 
 .group {
   display: flex;

@@ -51,7 +51,7 @@ export default function SectionPanel({
           {totalExceeds && <span className={styles.error_badge}>Over Limit</span>}
           {!totalExceeds && totalUsed > 0 && <span className={styles.ok_badge}>Within Limits</span>}
         </div>
-        <Button variant="danger" size="icon" onClick={() => onRemove(section.id)} title="Delete section">Delete</Button>
+        <Button variant="danger" size="icon" onClick={() => onRemove(section.id)} title="Delete section">🗑</Button>
       </div>
 
       {/* Name + Capacity */}
