@@ -52,6 +52,9 @@ public class SchedulerService {
         // STEP 3 – DSatur coloring with day-spread slot ordering
         colorGraph(nodes, days, periods, teacherMax, warnings);
 
+        // STEP 3.5 – Compaction: Slide lectures to earlier slots to fix gaps
+        compactTimetable(nodes, days, periods);
+
         // STEP 4 – fill result grid
         Map<String, Map<String, List<PeriodCell>>> timetable =
                 buildGrid(request.getSections(), nodes, days, periods);
@@ -144,24 +147,39 @@ public class SchedulerService {
         List<Set<Integer>> saturation = new ArrayList<>();
         for (int i = 0; i < n; i++) saturation.add(new HashSet<>());
 
-        Set<Integer> uncolored = new LinkedHashSet<>();
-        for (int i = 0; i < n; i++) uncolored.add(i);
+        // Global occupancy tracking
+        Map<String, Set<Integer>> teacherOccupied = new HashMap<>(); 
+        Map<String, Set<Integer>> sectionOccupied = new HashMap<>();
 
-        // Global occupancy tracking (across all sections / teachers)
-        Map<String, Set<Integer>> teacherOccupied = new HashMap<>(); // teacher -> occupied slots
-        Map<String, Set<Integer>> sectionOccupied = new HashMap<>(); // sectionId -> occupied slots
+        // --- PASS 1: Mandatory Variety (First 5 lectures of each subject: Mon-Fri) ---
+        // This handles "At least 1 lecture everyday" priority.
+        Set<Integer> uncoloredVariety = new LinkedHashSet<>();
+        for (int i = 0; i < n; i++) {
+            if (nodes.get(i).lectureIndex < days) uncoloredVariety.add(i);
+        }
+        processColoringPass(uncoloredVariety, nodes, saturation, days, periods, teacherOccupied, sectionOccupied, warnings);
 
+        // --- PASS 2: Repeats (6th+ lectures) ---
+        Set<Integer> uncoloredRepeats = new LinkedHashSet<>();
+        for (int i = 0; i < n; i++) {
+            if (nodes.get(i).assignedSlot == -1) uncoloredRepeats.add(i);
+        }
+        processColoringPass(uncoloredRepeats, nodes, saturation, days, periods, teacherOccupied, sectionOccupied, warnings);
+    }
+
+    private void processColoringPass(Set<Integer> uncolored, List<LectureNode> nodes, 
+                                     List<Set<Integer>> saturation, int days, int periods, 
+                                     Map<String, Set<Integer>> teacherOccupied, 
+                                     Map<String, Set<Integer>> sectionOccupied, 
+                                     List<String> warnings) {
+        
         while (!uncolored.isEmpty()) {
             int chosen = pickHighestSaturation(uncolored, saturation, nodes);
             LectureNode node = nodes.get(chosen);
 
-            // ── Day-spread slot ordering ─────────────────────────────────────
-            // Priority: put lecture index i on day (i % days) first, then wrap.
-            // This ensures subject lecture #0 → day 0, #1 → day 1, … #days → day 0 again.
-            // Within each preferred day, try periods 0..periods-1 in order.
             List<Integer> orderedSlots = getDaySpreadSlots(
                     days, periods, node.lectureIndex,
-                    node.sectionId, sectionOccupied);
+                    node.sectionId, node.subject, sectionOccupied);
 
             int assignedSlot = -1;
             for (int slot : orderedSlots) {
@@ -211,47 +229,38 @@ public class SchedulerService {
     private List<Integer> getDaySpreadSlots(int days, int periods,
                                               int lectureIndex,
                                               String sectionId,
+                                              String subject,
                                               Map<String, Set<Integer>> sectionOccupied) {
 
         Set<Integer> secSlots = sectionOccupied.getOrDefault(sectionId, Collections.emptySet());
-
-        // Count how many periods are taken per day for this section
         int[] dayLoad = new int[days];
         for (int slot : secSlots) dayLoad[slot / periods]++;
 
-        int preferredDay = lectureIndex % days;
-
-        // Build day order: start at preferredDay, wrap around
+        // 1. Build day list
         List<Integer> dayOrder = new ArrayList<>();
-        for (int offset = 0; offset < days; offset++) {
-            int d = (preferredDay + offset) % days;
-            dayOrder.add(d);
-        }
+        for (int d = 0; d < days; d++) dayOrder.add(d);
 
-        // Sort: days with fewer lectures first (prefer emptier days for spreading)
-        // But keep the round-robin preferred day first if it still has capacity
+        // 2. Variety Priority: Prefer days that have NOT been used for this section yet
         dayOrder.sort((a, b) -> {
-            boolean aHasRoom = dayLoad[a] < periods;
-            boolean bHasRoom = dayLoad[b] < periods;
-            if (aHasRoom && !bHasRoom) return -1;
-            if (!aHasRoom && bHasRoom) return  1;
-            // Both have room: prefer the one with fewer lectures (spread evenly)
-            int cmp = Integer.compare(dayLoad[a], dayLoad[b]);
-            if (cmp != 0) return cmp;
-            // Tie: keep original round-robin offset order. 
-            // Since dayOrder was built in the preferred order, we can just return 0 
-            // for a stable sort to preserve that order.
-            return 0;
+            int loadA = dayLoad[a];
+            int loadB = dayLoad[b];
+            if (loadA != loadB) return Integer.compare(loadA, loadB);
+            
+            // Tie: Use round-robin based on lectureIndex
+            int pref = lectureIndex % days;
+            int distA = (a - pref + days) % days;
+            int distB = (b - pref + days) % days;
+            return Integer.compare(distA, distB);
         });
 
-        // Build final slot list: within each day, prefer earlier periods
-        List<Integer> result = new ArrayList<>();
-        for (int d : dayOrder) {
-            for (int p = 0; p < periods; p++) {
-                result.add(d * periods + p);
+        // 3. THE P1 RACE: Try Period 0 across all preferred days first, then Period 1...
+        List<Integer> finalOrder = new ArrayList<>();
+        for (int pIdx = 0; pIdx < periods; pIdx++) {
+            for (int d : dayOrder) {
+                finalOrder.add(d * periods + pIdx);
             }
         }
-        return result;
+        return finalOrder;
     }
 
     private int pickHighestSaturation(Set<Integer> uncolored,
@@ -266,6 +275,86 @@ public class SchedulerService {
             }
         }
         return best;
+    }
+
+    // ── STEP 3.5: Compaction (Hole-filling) ──────────────────────────────────
+
+    // ── STEP 3.5: Compaction (Global Multi-Day P1 Optimizer) ────────────────
+
+    private void compactTimetable(List<LectureNode> nodes, int days, int periods) {
+        // Ultimate Optimizer: Pulls EVERY lecture to the earliest weekly slot building-wide
+        // (Mon P1 > Tue P1 > ... > Mon P2 > Tue P2 > ...)
+        // Priority order: Periods first, then Days. This forces maximum building-wide P1 density.
+        
+        boolean globallyMoved = true;
+        int passCount = 0;
+        while (globallyMoved && passCount++ < 50) {
+            globallyMoved = false;
+            
+            // Build current building-wide state
+            Map<String, Set<Integer>> teacherOccupied = new HashMap<>(); 
+            Map<String, Set<Integer>> sectionOccupied = new HashMap<>(); 
+            Map<String, Map<String, Set<Integer>>> sectionSubjectDays = new HashMap<>();
+
+            for (LectureNode n : nodes) {
+                if (n.assignedSlot >= 0) {
+                    teacherOccupied.computeIfAbsent(n.teacher, k -> new HashSet<>()).add(n.assignedSlot);
+                    sectionOccupied.computeIfAbsent(n.sectionId, k -> new HashSet<>()).add(n.assignedSlot);
+                    sectionSubjectDays.computeIfAbsent(n.sectionId, k -> new HashMap<>())
+                                      .computeIfAbsent(n.subject, k -> new HashSet<>()).add(n.assignedDay);
+                }
+            }
+
+            // Create global priority order: P0 (all days), P1 (all days)...
+            List<Integer> bestToWorstSlots = new ArrayList<>();
+            for (int pIdx = 0; pIdx < periods; pIdx++) {
+                for (int dIdx = 0; dIdx < days; dIdx++) {
+                    bestToWorstSlots.add(dIdx * periods + pIdx);
+                }
+            }
+
+            for (LectureNode n : nodes) {
+                if (n.assignedSlot == -1) continue;
+
+                int currentSlot = n.assignedSlot;
+                int currentPriorityIndex = bestToWorstSlots.indexOf(currentSlot);
+
+                // Try to find a slot with a lower PRIORITY index
+                for (int i = 0; i < currentPriorityIndex; i++) {
+                    int newSlot = bestToWorstSlots.get(i);
+                    int newDay = newSlot / periods;
+
+                    Set<Integer> tBusy = teacherOccupied.getOrDefault(n.teacher, Collections.emptySet());
+                    Set<Integer> sBusy = sectionOccupied.getOrDefault(n.sectionId, Collections.emptySet());
+                    if (tBusy.contains(newSlot) || sBusy.contains(newSlot)) continue;
+
+                    // Variety: 1 per day check
+                    if (newDay != n.assignedDay) {
+                        Set<Integer> sjDays = sectionSubjectDays.get(n.sectionId).get(n.subject);
+                        if (sjDays != null && sjDays.contains(newDay)) continue;
+
+                        // MOVE BUILDING-WIDE!
+                        teacherOccupied.get(n.teacher).remove(currentSlot);
+                        teacherOccupied.get(n.teacher).add(newSlot);
+                        sectionOccupied.get(n.sectionId).remove(currentSlot);
+                        sectionOccupied.get(n.sectionId).add(newSlot);
+                        sjDays.remove(n.assignedDay);
+                        sjDays.add(newDay);
+                    } else {
+                        teacherOccupied.get(n.teacher).remove(currentSlot);
+                        teacherOccupied.get(n.teacher).add(newSlot);
+                        sectionOccupied.get(n.sectionId).remove(currentSlot);
+                        sectionOccupied.get(n.sectionId).add(newSlot);
+                    }
+
+                    n.assignedSlot = newSlot;
+                    n.assignedDay = newDay;
+                    n.assignedPeriod = newSlot % periods;
+                    globallyMoved = true;
+                    break;
+                }
+            }
+        }
     }
 
     // ── STEP 4: build result grid ─────────────────────────────────────────────
