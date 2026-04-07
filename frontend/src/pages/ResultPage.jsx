@@ -18,6 +18,52 @@ export default function ResultPage({
   onPrev,
 }) {
   const [filterSectionId, setFilterSectionId] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwuLYQe4ZsmbhLT34_KPisIwumh1V-HB71jiT-WgDlv7BFR3o51LtUJD660528WdTV2/exec';
+
+  async function handleExportToGoogleSheets() {
+    if (!result?.timetable) return;
+    setExporting(true);
+    try {
+      const payload = {
+        sections: sections.map(s => ({ id: s.id, name: s.name })),
+        timetable: result.timetable,
+        days: DAYS.slice(0, daysPerWeek),
+        periods: periodsPerDay
+      };
+
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("Network response was not ok");
+      
+      const resText = await response.text();
+      let resJson;
+      try {
+        resJson = JSON.parse(resText);
+      } catch (e) {
+        throw new Error("Invalid response from script. Make sure you deployed as 'Anyone'.");
+      }
+
+      if (resJson.url) {
+        const win = window.open(resJson.url, '_blank');
+        if (!win) {
+          alert("Your sheet is ready! But your browser blocked the popup. Please click this link: " + resJson.url);
+        }
+      } else if (resJson.error) {
+        alert("Error from script: " + resJson.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Export failed: " + err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function handleDownloadCSV() {
     if (!result?.timetable) return;
@@ -74,7 +120,16 @@ export default function ResultPage({
             {loading ? 'Generating...' : 'Re-generate'}
           </Button>
           {result?.timetable && (
-            <Button variant="outline" onClick={handleDownloadCSV}>Download CSV</Button>
+            <>
+              <Button 
+                variant="outline" 
+                onClick={handleExportToGoogleSheets}
+                disabled={exporting}
+              >
+                {exporting ? 'Exporting...' : 'Export to Google Sheets'}
+              </Button>
+              <Button variant="outline" onClick={handleDownloadCSV}>Download CSV</Button>
+            </>
           )}
         </div>
       </div>
