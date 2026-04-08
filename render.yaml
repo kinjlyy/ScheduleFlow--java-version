@@ -1,5 +1,5 @@
 services:
-  - type: db
+  - type: pserv
     name: scheduleflow-db
     databaseName: scheduleflow
     user: postgres
