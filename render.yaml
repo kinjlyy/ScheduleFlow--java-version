@@ -1,6 +1,5 @@
 databases:
   - name: scheduleflow-db
-    type: postgres
     databaseName: scheduleflow
     user: postgres
     plan: free
@@ -8,7 +7,7 @@ databases:
 services:
   - type: web
     name: scheduleflow-backend
-    env: docker
+    runtime: docker
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
     plan: free
