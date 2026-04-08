@@ -1,6 +1,8 @@
 services:
-  - type: pserv
+  - type: db
     name: scheduleflow-db
+    databaseName: scheduleflow
+    user: postgres
     plan: free
 
   - type: web
@@ -15,21 +17,17 @@ services:
         fromDatabase:
           name: scheduleflow-db
           property: connectionString
-
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: scheduleflow-db
           property: user
-
       - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
           name: scheduleflow-db
           property: password
-
       - key: ALLOWED_ORIGINS
         sync: false
-        placeholder: "https://your-app.vercel.app"
-
+        placeholder: "Enter your Vercel URL (e.g., https://your-app.vercel.app)"
       - key: JWT_SECRET
         sync: false
-        placeholder: "some-random-secure-string"
+        placeholder: "Enter a random secure string"
