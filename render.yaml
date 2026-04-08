@@ -1,7 +1,6 @@
 services:
   - type: pserv
     name: scheduleflow-db
-    env: postgresql
     plan: free
 
   - type: web
