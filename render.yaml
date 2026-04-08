@@ -1,7 +1,6 @@
 databases:
   - name: scheduleflow-db
-    engine: postgresql
-    version: 15
+    type: postgres
     databaseName: scheduleflow
     user: postgres
     plan: free
