@@ -1,6 +1,7 @@
 // src/pages/public/LoginPage.jsx
 import React, { useState } from 'react';
 import styles from './LoginPage.module.css';
+import { BASE_URL } from '../../api/timetableApi';
 
 export default function LoginPage({ onLogin, onBack }) {
   const [tab, setTab]       = useState('login'); // 'login' | 'register'
@@ -15,7 +16,7 @@ export default function LoginPage({ onLogin, onBack }) {
     if (!email || !pass) { setError('Please fill in all fields.'); return; }
     if (tab === 'register' && !name) { setError('Please enter your name.'); return; }
 
-    const url = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const url = tab === 'login' ? `${BASE_URL}/auth/login` : `${BASE_URL}/auth/register`;
     const payload = tab === 'login' ? { email, password: pass } : { name, email, password: pass };
 
     try {

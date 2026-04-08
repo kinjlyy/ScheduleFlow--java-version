@@ -40,11 +40,22 @@ public class SecurityConfig {
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        // Allow patterns to be more flexible with localhost/127.0.0.1
-        configuration.setAllowedOriginPatterns(java.util.List.of(
-            "http://localhost:[*]",
-            "http://127.0.0.1:[*]"
-        ));
+        
+        // Read allowed origins from environment variable
+        String allowedOriginsEnv = System.getenv("ALLOWED_ORIGINS");
+        java.util.List<String> allowedOrigins = new java.util.ArrayList<>();
+        
+        // Always allow localhost for development
+        allowedOrigins.add("http://localhost:[*]");
+        allowedOrigins.add("http://127.0.0.1:[*]");
+        
+        if (allowedOriginsEnv != null && !allowedOriginsEnv.isEmpty()) {
+            for (String origin : allowedOriginsEnv.split(",")) {
+                allowedOrigins.add(origin.trim());
+            }
+        }
+        
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Origin", "Accept", "X-Requested-With"));
         configuration.setExposedHeaders(java.util.List.of("Authorization"));

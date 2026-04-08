@@ -1,7 +1,7 @@
 // src/api/timetableApi.js
 // Communicates with the Java Spring Boot backend
 
-const BASE_URL = '/api';
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * POST /api/generate

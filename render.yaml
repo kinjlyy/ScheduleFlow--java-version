@@ -1,0 +1,33 @@
+services:
+  - type: db
+    name: scheduleflow-db
+    databaseName: scheduleflow
+    user: postgres
+    plan: free
+
+  - type: web
+    name: scheduleflow-backend
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: scheduleflow-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: scheduleflow-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: scheduleflow-db
+          property: password
+      - key: ALLOWED_ORIGINS
+        sync: false
+        placeholder: "Enter your Vercel URL (e.g., https://your-app.vercel.app)"
+      - key: JWT_SECRET
+        sync: false
+        placeholder: "Enter a random secure string"
