@@ -25,6 +25,8 @@ services:
         fromDatabase:
           name: scheduleflow-db
           property: password
+      - key: PORT
+        value: "8080"
       - key: ALLOWED_ORIGINS
         sync: false
         placeholder: "Enter your Vercel URL (e.g., https://your-app.vercel.app)"
