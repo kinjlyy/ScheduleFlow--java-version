@@ -11,7 +11,7 @@ services:
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
     plan: free
-    healthCheckPath: /api/health
+    healthCheckPath: /
     envVars:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
