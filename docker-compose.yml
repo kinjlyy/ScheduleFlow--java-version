@@ -18,6 +18,10 @@ services:
     container_name: scheduleflow-backend
     depends_on:
       - db
+    networks:
+      default:
+        aliases:
+          - backend.railway.internal
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/scheduleflow
       SPRING_DATASOURCE_USERNAME: postgres
