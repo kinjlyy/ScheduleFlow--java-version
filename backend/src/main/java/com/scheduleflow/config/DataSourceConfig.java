@@ -17,9 +17,12 @@ public class DataSourceConfig {
     public DataSource dataSource(DataSourceProperties dataSourceProperties) {
         String rawUrl = environment.getProperty("DATABASE_URL");
         if (rawUrl != null && !rawUrl.isBlank()) {
-            // Convert postgres:// to jdbc:postgresql:// if needed
+            // Render provides: postgresql://user:pass@host:port/db
+            // Spring needs:    jdbc:postgresql://user:pass@host:port/db
             if (rawUrl.startsWith("postgres://")) {
                 rawUrl = "jdbc:postgresql://" + rawUrl.substring(11);
+            } else if (rawUrl.startsWith("postgresql://")) {
+                rawUrl = "jdbc:" + rawUrl;
             }
             dataSourceProperties.setUrl(rawUrl);
         }
