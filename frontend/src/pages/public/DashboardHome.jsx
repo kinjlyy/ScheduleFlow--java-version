@@ -10,10 +10,10 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
         <div className={styles.sidebar_logo}>ScheduleFlow</div>
         <nav className={styles.sidebar_nav}>
           {[
-            { icon: '⊞', label: 'Dashboard',         active: true,  onClick: null },
-            { icon: '📅', label: 'Current Time Table', active: false, onClick: null },
-            { icon: '👥', label: 'Users',              active: false, onClick: null },
-            { icon: '⚙️', label: 'Settings',           active: false, onClick: null },
+            { icon: '', label: 'Dashboard',         active: true,  onClick: null },
+            { icon: '', label: 'Current Time Table', active: false, onClick: null },
+            { icon: '', label: 'Users',              active: false, onClick: null },
+            { icon: '', label: 'Settings',           active: false, onClick: null },
           ].map(item => (
             <button
               key={item.label}
