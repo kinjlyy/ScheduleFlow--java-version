@@ -72,7 +72,7 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
             {/* Manage Events */}
             <div className={styles.action_card}>
               <div className={styles.action_icon_wrap} style={{background:'#e8eaf6'}}>
-                <span className={styles.action_icon}>🎪</span>
+                <span className={styles.action_icon}></span>
               </div>
               <h2 className={styles.action_title}>Manage Events</h2>
               <p className={styles.action_desc}>
@@ -101,10 +101,10 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
           {/* Stats row */}
           <div className={styles.stat_row_wrap}>
             {[
-              { icon: '📊', val: '12',  label: 'Total Timetables', color: '#0ABFBC' },
-              { icon: '📤', val: '5',   label: 'Published',        color: '#0ABFBC' },
-              { icon: '📄', val: '3',   label: 'Drafts',           color: '#e05252' },
-              { icon: '👥', val: '48',  label: 'Teachers',         color: '#6366f1' },
+              { icon: '', val: '12',  label: 'Total Timetables', color: '#0ABFBC' },
+              { icon: '', val: '5',   label: 'Published',        color: '#0ABFBC' },
+              { icon: '', val: '3',   label: 'Drafts',           color: '#e05252' },
+              { icon: '', val: '48',  label: 'Teachers',         color: '#6366f1' },
             ].map(s => (
               <div key={s.label} className={styles.stat_card}>
                 <div className={styles.stat_icon_wrap} style={{background: s.color + '22'}}>
