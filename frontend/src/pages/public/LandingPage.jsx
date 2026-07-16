@@ -350,196 +350,137 @@ export default function LandingPage({ onGetStarted }) {
    Developer / Founder Section  (compact, beige)
 ───────────────────────────────────────────── */
 const DEV_SNIPPETS = [
-  'graph.solve()',
-  'O(n log n)',
-  'optimize()',
-  '@SpringBoot',
-  'useEffect',
-  'SELECT slots',
-  '{ conflict: 0 }',
-  'build(timetable)',
+  { text: '{\n  conflict: 0\n}', delay: '0s', duration: '8s', top: '12%', left: '-8%' },
+  { text: 'graph.solve()', delay: '1s', duration: '9s', top: '35%', left: '84%' },
+  { text: 'build(timetable)', delay: '2.5s', duration: '10s', top: '72%', left: '74%' },
+  { text: '@SpringBoot', delay: '0.8s', duration: '7.5s', top: '68%', left: '-12%' },
+  { text: 'optimize()', delay: '1.8s', duration: '11s', top: '88%', left: '32%' },
+  { text: 'O(n log n)', delay: '3s', duration: '8.5s', top: '48%', left: '-18%' },
+  { text: 'SELECT slots', delay: '1.2s', duration: '9.5s', top: '8%', left: '68%' },
+  { text: 'useEffect()', delay: '2.2s', duration: '10.5s', top: '40%', left: '-10%' },
 ];
 
 function DeveloperSection() {
-  const canvasRef = useRef(null);
-  const [hover, setHover] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
+  const frameRef = useRef(null);
+  const [coords, setCoords] = React.useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = React.useState(false);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+  const handleMouseMove = (e) => {
+    const el = frameRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5;  // -0.5 to 0.5
+    setCoords({ x, y });
+  };
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = '/kinjal.jpg';
-    img.onload = () => {
-      setLoaded(true);
-      const size = 300;
-      canvas.width = size;
-      canvas.height = size;
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCoords({ x: 0, y: 0 });
+  };
 
-      // Draw original image on temp canvas to extract colors
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = size;
-      tempCanvas.height = size;
-      const tempCtx = tempCanvas.getContext('2d');
-      
-      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
-      const sx = (img.naturalWidth - minDim) / 2;
-      const sy = (img.naturalHeight - minDim) / 2;
-      tempCtx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-
-      const COLS = 75;
-      const ROWS = 75;
-      const cellW = size / COLS;
-      const cellH = size / ROWS;
-
-      const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
-      // Build grid state in memory
-      const grid = [];
-      for (let y = 0; y < ROWS; y++) {
-        for (let x = 0; x < COLS; x++) {
-          const px = Math.floor(x * cellW + cellW / 2);
-          const py = Math.floor(y * cellH + cellH / 2);
-          const pixel = tempCtx.getImageData(px, py, 1, 1).data;
-          const [r, g, b] = pixel;
-          const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-          const initialDigitIdx = Math.floor(brightness * (digits.length - 1));
-
-          grid.push({
-            x: x * cellW + cellW / 2,
-            y: y * cellH + cellH / 2,
-            color: `rgb(${r}, ${g}, ${b})`,
-            digitIdx: initialDigitIdx,
-            baseIdx: initialDigitIdx // Keep baseline index to stay near original brightness
-          });
-        }
-      }
-
-      let animId;
-      let lastTime = 0;
-      const fps = 12; // Moderate fps for performance and cool look
-      const interval = 1000 / fps;
-
-      const draw = (timestamp) => {
-        animId = requestAnimationFrame(draw);
-
-        if (timestamp - lastTime < interval) return;
-        lastTime = timestamp;
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        ctx.font = 'bold 5.5px monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        for (let i = 0; i < grid.length; i++) {
-          const cell = grid[i];
-
-          // 8% chance each frame to cycle a digit's index
-          if (Math.random() < 0.08) {
-            // Jitter around base index to keep shape/contrast intact
-            const jitter = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
-            let newIdx = cell.baseIdx + jitter;
-            if (newIdx < 0) newIdx = 0;
-            if (newIdx >= digits.length) newIdx = digits.length - 1;
-            cell.digitIdx = newIdx;
-          }
-
-          ctx.fillStyle = cell.color;
-          ctx.fillText(digits[cell.digitIdx], cell.x, cell.y);
-        }
-      };
-
-      animId = requestAnimationFrame(draw);
-
-      return () => {
-        cancelAnimationFrame(animId);
-      };
-    };
-    img.onerror = () => {
-      setLoaded(true);
-    };
-  }, []);
+  // 3D rotation values
+  const rotateX = coords.y * -24; // tilt up/down
+  const rotateY = coords.x * 24;  // tilt left/right
+  const glareX = (coords.x + 0.5) * 100;
+  const glareY = (coords.y + 0.5) * 100;
 
   return (
     <section className={styles.dev_section} id="team">
-      {/* Soft gradient bg */}
+      {/* Warm beige gradient background */}
       <div className={styles.dev_bg} aria-hidden="true" />
 
       <div className={styles.dev_inner}>
 
-        {/* ── LEFT: compact photo ── */}
+        {/* ── LEFT: Interactive 3D Avatar ── */}
         <div className={styles.dev_photo_col}>
 
-          {/* Orbiting code symbols */}
+          {/* Floating glassmorphism code tags */}
           {DEV_SNIPPETS.map((s, i) => (
             <span
               key={i}
-              className={styles.dev_orbit}
+              className={styles.dev_glass_tag}
               style={{
-                '--angle': `${i * (360 / DEV_SNIPPETS.length)}deg`,
-                animationDelay: `${i * -1.8}s`,
+                top: s.top,
+                left: s.left,
+                animationDelay: s.delay,
+                animationDuration: s.duration,
               }}
               aria-hidden="true"
-            >{s}</span>
+            >
+              <pre>{s.text}</pre>
+            </span>
           ))}
 
-          {/* Photo frame */}
+          {/* 3D Photo card wrapper */}
           <div
-            className={`${styles.dev_photo_frame} ${hover ? styles.dev_photo_hovered : ''}`}
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
+            ref={frameRef}
+            className={`${styles.dev_photo_3d_wrapper} ${isHovered ? styles.dev_photo_active : ''}`}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              transform: `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+            }}
           >
-            <canvas
-              ref={canvasRef}
-              className={styles.dev_photo}
-              style={{ display: loaded ? 'block' : 'none' }}
-            />
-            {!loaded && (
+            {/* Ambient gold/teal glow behind photo */}
+            <div className={styles.dev_glow_ring} />
+
+            {/* Photo layer */}
+            <div className={styles.dev_photo_container}>
               <img
                 src="/kinjal.jpg"
-                alt="Kinjal Gupta"
-                className={styles.dev_photo}
+                alt="Kinjal Gupta — Developer of ScheduleFlow"
+                className={styles.dev_actual_photo}
               />
-            )}
-            {/* code-pattern overlay */}
-            <div className={styles.dev_photo_overlay} aria-hidden="true">
-              <span>{'</>'}</span>
+              {/* Dynamic glare/shimmer based on mouse position */}
+              {isHovered && (
+                <div
+                  className={styles.dev_glare}
+                  style={{
+                    background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255, 255, 255, 0.45) 0%, transparent 60%)`,
+                  }}
+                />
+              )}
             </div>
+
+            {/* Simulated blink/reflection scanlines */}
+            <div className={styles.dev_scanline} />
           </div>
 
-          {/* Pill below photo */}
-          <div className={styles.dev_name_pill}>
-            <span className={styles.dev_status_dot} />
-            Kinjal Gupta · CS Student
+          {/* Status badge below photo */}
+          <div className={styles.dev_badge_pill}>
+            <span className={styles.dev_badge_status_dot} />
+            <span>Kinjal Gupta · Developer</span>
           </div>
         </div>
 
-        {/* ── RIGHT: story + mission ── */}
+        {/* ── RIGHT: Copy, Mission and Tags ── */}
         <div className={styles.dev_content}>
-
-          {/* eyebrow */}
-          <div className={styles.dev_eyebrow}>The Developer Behind the Idea</div>
-
+          <div className={styles.dev_eyebrow}>Meet the Developer</div>
           <h2 className={styles.dev_heading}>Hi, I'm Kinjal</h2>
 
           <p className={styles.dev_intro}>
-            I am a Computer Science student and the creator of ScheduleFlow.
-            I built it to simplify academic scheduling by combining software engineering
-            and optimization algorithms — turning endless spreadsheets into instant,
-            conflict-free timetables.
+            I am a Computer Science student and the developer behind ScheduleFlow.
+            I build technology solutions that transform real-world challenges into scalable
+            software products. ScheduleFlow was created to simplify academic scheduling
+            using algorithms, automation, and modern engineering.
           </p>
 
           {/* Mission */}
-          <div className={styles.dev_mission_block}>
-            <div className={styles.dev_mission_label}>My Mission</div>
-            <p className={styles.dev_mission_text}>
+          <div className={styles.dev_mission_card}>
+            <div className={styles.dev_mission_header}>My Mission</div>
+            <p className={styles.dev_mission_quote}>
               "My mission is to transform real-world challenges into impactful technology
               solutions by combining engineering, innovation, and creative problem-solving."
             </p>
+          </div>
+
+          {/* Tags */}
+          <div className={styles.dev_tags_row}>
+            {['Software Engineer', 'Full Stack Developer', 'Problem Solver'].map(t => (
+              <span key={t} className={styles.dev_tag_chip}>{t}</span>
+            ))}
           </div>
         </div>
 
@@ -547,6 +488,7 @@ function DeveloperSection() {
     </section>
   );
 }
+
 
 
 
