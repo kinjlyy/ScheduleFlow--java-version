@@ -238,7 +238,7 @@ export default function LandingPage({ onGetStarted }) {
                 'Timetable generated automatically in one click',
                 'Conflict-free scheduling across all sections',
                 'Teacher workload balanced within weekly caps',
-                'Multiple department support out of the box',
+                'Export timetables to CSV or Google Sheets instantly',
                 'Section-wise timetable with instant publish',
                 'Constraint violations caught before generation',
               ].map(s => (
