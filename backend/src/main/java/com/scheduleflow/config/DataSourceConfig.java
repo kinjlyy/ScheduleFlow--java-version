@@ -29,6 +29,13 @@ public class DataSourceConfig {
                     }
                     
                     String jdbcUrl = "jdbc:postgresql://" + serverAndDb;
+                    if (!jdbcUrl.contains("sslmode=")) {
+                        if (jdbcUrl.contains("?")) {
+                            jdbcUrl += "&sslmode=require";
+                        } else {
+                            jdbcUrl += "?sslmode=require";
+                        }
+                    }
                     dataSourceProperties.setUrl(jdbcUrl);
                     
                     if (userInfo != null) {
