@@ -56,7 +56,6 @@ export default function LandingPage({ onGetStarted }) {
           <a href="#home"    className={styles.nav_link + ' ' + styles.nav_active}>Home</a>
           <a href="#about"   className={styles.nav_link}>Features</a>
           <a href="#how"     className={styles.nav_link}>How it Works</a>
-          <a href="#pricing" className={styles.nav_link}>Pricing</a>
           <a href="#team"    className={styles.nav_link}>Team</a>
         </nav>
         <button className={styles.get_started_btn} onClick={onGetStarted}>
@@ -338,37 +337,6 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
-      {/* ── Pricing ── */}
-      <section className={styles.pricing} id="pricing">
-        <div className={styles.section_header}>
-          <h2 className={styles.section_title}>Simple, transparent pricing</h2>
-          <p className={styles.section_sub}>Start free. Upgrade when you need more.</p>
-        </div>
-        <div className={styles.pricing_grid}>
-          {[
-            { name: 'Starter', price: 'Free', sub: 'Perfect to get started', features: ['2 Sections', '5 Teachers', 'Basic Timetable', 'CSV Export'], highlight: false },
-            { name: 'Pro', price: '₹999/mo', sub: 'For growing institutions', features: ['Unlimited Sections', 'All Teachers', 'AI Optimization', 'Event Management', 'Google Sheets Export', 'Priority Support'], highlight: true },
-            { name: 'Enterprise', price: 'Custom', sub: 'For large universities', features: ['Everything in Pro', 'Custom Integrations', 'Dedicated Support', 'SLA Guarantee', 'Onboarding Call'], highlight: false },
-          ].map(p => (
-            <div key={p.name} className={`${styles.price_card} ${p.highlight ? styles.price_highlight : ''}`}>
-              {p.highlight && <div className={styles.price_badge}>Most Popular</div>}
-              <div className={styles.price_name}>{p.name}</div>
-              <div className={styles.price_val}>{p.price}</div>
-              <div className={styles.price_sub}>{p.sub}</div>
-              <hr className={styles.price_divider} />
-              <ul className={styles.price_features}>
-                {p.features.map(f => <li key={f}><span className={styles.check}>✓</span> {f}</li>)}
-              </ul>
-              <button
-                className={p.highlight ? styles.price_btn_primary : styles.price_btn}
-                onClick={onGetStarted}
-              >
-                Get Started
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ── Team ── */}
       <section className={styles.team} id="team">
@@ -406,7 +374,6 @@ export default function LandingPage({ onGetStarted }) {
           <div className={styles.footer_links}>
             <a href="#about" className={styles.footer_link}>Features</a>
             <a href="#how" className={styles.footer_link}>How it Works</a>
-            <a href="#pricing" className={styles.footer_link}>Pricing</a>
             <a href="#team" className={styles.footer_link}>Team</a>
           </div>
         </div>
