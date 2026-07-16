@@ -337,7 +337,6 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
-      {/* ── Developer Section ── */}
       <DeveloperSection />
 
       {/* ── CTA + Footer ── */}
@@ -350,44 +349,97 @@ export default function LandingPage({ onGetStarted }) {
    Developer / Founder Section  — Animated Avatar
 ───────────────────────────────────────────── */
 const DEV_TAGS = [
-  { label: '{ conflict: 0 }',  icon: null,   top: '10%',  left: '-5%',  delay: '0s',   dur: '7s'  },
-  { label: 'graph.solve()',     icon: '</>',  top: '30%',  left: '88%',  delay: '1.2s', dur: '9s'  },
-  { label: 'build(timetable)', icon: null,   top: '68%',  left: '80%',  delay: '2s',   dur: '8s'  },
-  { label: '@SpringBoot',      icon: '🍃',   top: '72%',  left: '-6%',  delay: '0.6s', dur: '10s' },
-  { label: 'optimize()',       icon: '⚡',   top: '90%',  left: '38%',  delay: '1.8s', dur: '11s' },
-  { label: 'O(n log n)',       icon: '📊',   top: '50%',  left: '-14%', delay: '3s',   dur: '8.5s'},
-  { label: 'SELECT slots',     icon: '🗄️',  top: '6%',   left: '62%',  delay: '1s',   dur: '9.5s'},
-  { label: 'useEffect()',      icon: '⚛️',  top: '44%',  left: '-8%',  delay: '2.4s', dur: '10.5s'},
+  { label: '{ conflict: 0 }',  icon: null,   top: '8%',   left: '-2%',  delay: '0s',   dur: '7s'  },
+  { label: 'graph.solve()',     icon: '</>',  top: '28%',  left: '88%',  delay: '1.2s', dur: '9s'  },
+  { label: 'build(timetable)', icon: null,   top: '66%',  left: '80%',  delay: '2s',   dur: '8s'  },
+  { label: '@SpringBoot',      icon: '🍃',   top: '70%',  left: '-4%',  delay: '0.6s', dur: '10s' },
+  { label: 'optimize()',       icon: '⚡',   top: '90%',  left: '36%',  delay: '1.8s', dur: '11s' },
+  { label: 'O(n log n)',       icon: '📊',   top: '48%',  left: '-12%', delay: '3s',   dur: '8.5s'},
+  { label: 'SELECT slots',     icon: '🗄️',  top: '5%',   left: '60%',  delay: '1s',   dur: '9.5s'},
+  { label: 'useEffect()',      icon: '⚛️',  top: '42%',  left: '-6%',  delay: '2.4s', dur: '10.5s'},
 ];
 
-const CODE_LINES = [
-  'function buildSchedule() {',
-  '  graph.solve(slots);',
-  '  return optimize(result);',
-  '}',
+// Code lines typed on the laptop screen
+const SCREEN_LINES = [
+  { text: 'buildSchedule()',    delay: 0    },
+  { text: 'graph.solve()',      delay: 700  },
+  { text: 'optimize()',         delay: 1400 },
+  { text: 'conflict = 0',       delay: 2100 },
+  { text: 'return timetable;',  delay: 2800 },
+];
+
+// Particles that fly out of laptop toward the right column
+const PARTICLES = [
+  { text: 'Hi, I\'m Kinjal',               delay: 3200,  x: 90,  y: -40 },
+  { text: 'buildSchedule()',                delay: 3500,  x: 120, y: -10 },
+  { text: 'conflict: 0',                   delay: 3800,  x: 100, y: 20  },
+  { text: 'CS Student & Developer',        delay: 4100,  x: 130, y: -55 },
+  { text: 'optimize(result)',              delay: 4400,  x: 80,  y: 50  },
+  { text: 'graph.shortestPath()',          delay: 4700,  x: 140, y: 10  },
+];
+
+// Story text that reveals sequentially as if "generated" by the laptop
+const STORY_ITEMS = [
+  { type: 'eyebrow', text: 'Meet the Developer',                                               delay: 1000 },
+  { type: 'heading', text: "Hi, I'm Kinjal",                                                  delay: 1600 },
+  { type: 'para',    text: 'I am a Computer Science student and the developer behind ScheduleFlow. I build software solutions that transform real-world problems into impactful technology — turning hours of manual scheduling into instant, conflict-free timetables.', delay: 2400 },
+  { type: 'mission', text: '"My mission is to combine engineering, algorithms, and creativity to build products that simplify everyday challenges and create meaningful impact through technology."', delay: 3200 },
 ];
 
 function DeveloperSection() {
-  const [visibleLines, setVisibleLines] = React.useState(0);
-  const sectionRef = useRef(null);
-  const started = useRef(false);
+  const sectionRef  = useRef(null);
+  const started     = useRef(false);
 
-  // Scroll-triggered typewriter on code lines
+  // Animation phases driven by IntersectionObserver
+  const [phase, setPhase] = React.useState(0);
+  // 0 = hidden | 1 = avatar in | 2 = screen on | 3 = typing | 4 = particles | 5 = story text
+
+  // Which laptop screen lines are visible
+  const [screenLines, setScreenLines]   = React.useState([]);
+  // Which particles are flying
+  const [activeParticles, setActiveParticles] = React.useState([]);
+  // Which story items are revealed (indices)
+  const [revealedItems, setRevealedItems] = React.useState([]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          let i = 0;
-          const tick = () => {
-            i++;
-            setVisibleLines(i);
-            if (i < CODE_LINES.length) setTimeout(tick, 600);
-          };
-          setTimeout(tick, 400);
-        }
+        if (!entry.isIntersecting || started.current) return;
+        started.current = true;
+
+        // Phase 1 – avatar fades in
+        setPhase(1);
+
+        // Phase 2 – screen glows on
+        setTimeout(() => setPhase(2), 500);
+
+        // Phase 3 – code lines type one by one
+        setTimeout(() => {
+          setPhase(3);
+          SCREEN_LINES.forEach(({ text, delay }) => {
+            setTimeout(() => setScreenLines(prev => [...prev, text]), delay);
+          });
+        }, 800);
+
+        // Phase 4 – particles burst from laptop
+        setTimeout(() => {
+          setPhase(4);
+          PARTICLES.forEach(({ text, delay, x, y }) => {
+            setTimeout(() => {
+              setActiveParticles(prev => [...prev, { text, x, y, id: Date.now() + delay }]);
+            }, delay - 3200);
+          });
+        }, 3200);
+
+        // Phase 5 – story text reveals
+        setTimeout(() => {
+          setPhase(5);
+          STORY_ITEMS.forEach((_, i) => {
+            setTimeout(() => setRevealedItems(prev => [...prev, i]), i * 600);
+          });
+        }, 4000);
       },
-      { threshold: 0.3 }
+      { threshold: 0.25 }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
@@ -407,8 +459,13 @@ function DeveloperSection() {
           {DEV_TAGS.map((t, i) => (
             <span
               key={i}
-              className={styles.dev_glass_tag}
-              style={{ top: t.top, left: t.left, animationDelay: t.delay, animationDuration: t.dur }}
+              className={`${styles.dev_glass_tag} ${phase >= 1 ? styles.tag_visible : ''}`}
+              style={{
+                top: t.top, left: t.left,
+                animationDelay: t.delay,
+                animationDuration: t.dur,
+                transitionDelay: `${0.3 + i * 0.1}s`,
+              }}
               aria-hidden="true"
             >
               {t.icon && <span className={styles.tag_icon}>{t.icon}</span>}
@@ -416,47 +473,93 @@ function DeveloperSection() {
             </span>
           ))}
 
-          {/* Avatar scene */}
-          <div className={styles.avatar_scene}>
+          {/* Avatar scene — same image, CSS animations layered on top */}
+          <div className={`${styles.avatar_scene} ${phase >= 1 ? styles.avatar_alive : ''}`}>
+
+            {/* The cartoon avatar — same src, breathing + float animations via CSS class */}
             <img
               src="/kinjal_avatar.png"
               alt="Kinjal Gupta — Developer of ScheduleFlow"
-              className={styles.avatar_img}
+              className={`${styles.avatar_img} ${phase >= 1 ? styles.avatar_breathing : ''}`}
             />
 
-            {/* Laptop screen code animation overlay */}
-            <div className={styles.laptop_screen}>
-              {CODE_LINES.slice(0, visibleLines).map((line, i) => (
-                <div key={i} className={styles.code_line} style={{ animationDelay: `${i * 0.1}s` }}>
-                  {line}
-                </div>
-              ))}
-              {visibleLines < CODE_LINES.length && (
-                <span className={styles.cursor_blink}>▋</span>
-              )}
+            {/* ── Eye blink overlay ── positioned over where the avatar eyes sit */}
+            <div className={`${styles.eye_blink_overlay} ${phase >= 1 ? styles.blink_active : ''}`} aria-hidden="true">
+              <span className={styles.eye_left}  />
+              <span className={styles.eye_right} />
             </div>
+
+            {/* ── Finger tap overlay ── subtle pulse over the keyboard area ── */}
+            {phase >= 3 && (
+              <div className={styles.finger_tap_overlay} aria-hidden="true">
+                <span /><span /><span />
+              </div>
+            )}
+
+            {/* ── Laptop screen glow + code lines ── */}
+            <div className={`${styles.laptop_screen_wrap} ${phase >= 2 ? styles.screen_on : ''}`}>
+              {/* Glow halo behind screen */}
+              <div className={styles.screen_glow} />
+
+              {/* Typed code lines */}
+              <div className={styles.laptop_screen}>
+                {screenLines.map((line, i) => (
+                  <div key={i} className={styles.code_line}>
+                    {line}
+                  </div>
+                ))}
+                {phase >= 3 && screenLines.length < SCREEN_LINES.length && (
+                  <span className={styles.cursor_blink}>▋</span>
+                )}
+              </div>
+            </div>
+
+            {/* ── Code particles flying from laptop toward right ── */}
+            {activeParticles.map(p => (
+              <span
+                key={p.id}
+                className={styles.code_particle}
+                style={{ '--px': `${p.x}px`, '--py': `${p.y}px` }}
+                aria-hidden="true"
+              >
+                {p.text}
+              </span>
+            ))}
           </div>
 
           {/* Status pill */}
-          <div className={styles.dev_badge_pill}>
+          <div className={`${styles.dev_badge_pill} ${phase >= 1 ? styles.badge_in : ''}`}>
             <span className={styles.dev_badge_status_dot} />
-            <span>Kinjal Gupta · CS Student & Developer</span>
+            <span>Kinjal Gupta · CS Student &amp; Developer</span>
           </div>
         </div>
 
-        {/* ══ RIGHT: Story card ══ */}
+        {/* ══ RIGHT: Story card — text appears as if generated by laptop ══ */}
         <div className={styles.dev_content}>
-          <div className={styles.dev_eyebrow}>Meet the Developer</div>
-          <h2 className={styles.dev_heading}>Hi, I'm Kinjal</h2>
 
-          <p className={styles.dev_intro}>
+          {/* Eyebrow */}
+          <div className={`${styles.dev_eyebrow} ${revealedItems.includes(0) ? styles.story_in : styles.story_hidden}`}>
+            Meet the Developer
+          </div>
+
+          {/* Heading with typewriter-style reveal */}
+          <h2 className={`${styles.dev_heading} ${revealedItems.includes(1) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0s' }}>
+            Hi, I'm Kinjal
+          </h2>
+
+          {/* Intro paragraph */}
+          <p className={`${styles.dev_intro} ${revealedItems.includes(2) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0s' }}>
             I am a Computer Science student and the developer behind ScheduleFlow.
             I build software solutions that transform real-world problems into
             impactful technology — turning hours of manual scheduling into
             instant, conflict-free timetables.
           </p>
 
-          <div className={styles.dev_mission_card}>
+          {/* Mission */}
+          <div className={`${styles.dev_mission_card} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0s' }}>
             <div className={styles.dev_mission_header}>My Mission</div>
             <p className={styles.dev_mission_quote}>
               "My mission is to combine engineering, algorithms, and creativity
@@ -466,15 +569,20 @@ function DeveloperSection() {
           </div>
 
           {/* Technologies */}
-          <div className={styles.dev_tech_label}>Built with</div>
-          <div className={styles.dev_tags_row}>
+          <div className={`${styles.dev_tech_label} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0.15s' }}>
+            Built with
+          </div>
+          <div className={`${styles.dev_tags_row} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0.25s' }}>
             {['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms'].map(t => (
               <span key={t} className={styles.dev_tag_chip}>{t}</span>
             ))}
           </div>
 
           {/* Role chips */}
-          <div className={styles.dev_roles_row}>
+          <div className={`${styles.dev_roles_row} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
+            style={{ transitionDelay: '0.4s' }}>
             {['Software Engineer', 'Full Stack Developer', 'Problem Solver'].map(r => (
               <span key={r} className={styles.dev_role_chip}>{r}</span>
             ))}
@@ -485,6 +593,7 @@ function DeveloperSection() {
     </section>
   );
 }
+
 
 
 /* ─────────────────────────────────────────────
