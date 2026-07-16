@@ -40,7 +40,7 @@ export default function ResultPage({
       });
 
       if (!response.ok) throw new Error("Network response was not ok");
-      
+
       const resText = await response.text();
       let resJson;
       try {
@@ -121,8 +121,8 @@ export default function ResultPage({
           </Button>
           {result?.timetable && (
             <>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleExportToGoogleSheets}
                 disabled={exporting}
               >
@@ -155,9 +155,9 @@ export default function ResultPage({
       {/* Stats */}
       {result?.stats && !loading && (
         <div className={styles.stats_row}>
-          <StatCard value={result.stats.totalSections}          label="Sections" />
+          <StatCard value={result.stats.totalSections} label="Sections" />
           <StatCard value={result.stats.totalScheduledLectures} label="Scheduled Lectures" />
-          <StatCard value={result.stats.totalFreePeriods}       label="Free Periods" />
+          <StatCard value={result.stats.totalFreePeriods} label="Free Periods" />
           <StatCard
             value={result.stats.warningCount}
             label="Warnings"
@@ -204,7 +204,7 @@ export default function ResultPage({
       {/* Timetables Rendering */}
       {result?.timetable && !loading && (
         <div className={styles.grid_container}>
-          {(filterSectionId 
+          {(filterSectionId
             ? sections.filter(s => s.id === filterSectionId)
             : sections
           ).map(sec => (

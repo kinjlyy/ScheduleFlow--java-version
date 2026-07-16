@@ -4,11 +4,11 @@ import styles from './LoginPage.module.css';
 import { BASE_URL } from '../../api/timetableApi';
 
 export default function LoginPage({ onLogin, onBack }) {
-  const [tab, setTab]       = useState('login'); // 'login' | 'register'
-  const [email, setEmail]   = useState('');
-  const [pass, setPass]     = useState('');
-  const [name, setName]     = useState('');
-  const [error, setError]   = useState('');
+  const [tab, setTab] = useState('login'); // 'login' | 'register'
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -51,16 +51,16 @@ export default function LoginPage({ onLogin, onBack }) {
         <div className={styles.left_illo}>
           <div className={styles.illo_card}>
             <div className={styles.illo_row}>
-              <span className={styles.illo_dot} style={{background:'#0ABFBC'}} />
-              <span className={styles.illo_bar} style={{width:'60%'}} />
+              <span className={styles.illo_dot} style={{ background: '#0ABFBC' }} />
+              <span className={styles.illo_bar} style={{ width: '60%' }} />
             </div>
             <div className={styles.illo_row}>
-              <span className={styles.illo_dot} style={{background:'#c9956a'}} />
-              <span className={styles.illo_bar} style={{width:'80%'}} />
+              <span className={styles.illo_dot} style={{ background: '#c9956a' }} />
+              <span className={styles.illo_bar} style={{ width: '80%' }} />
             </div>
             <div className={styles.illo_row}>
-              <span className={styles.illo_dot} style={{background:'#059669'}} />
-              <span className={styles.illo_bar} style={{width:'45%'}} />
+              <span className={styles.illo_dot} style={{ background: '#059669' }} />
+              <span className={styles.illo_bar} style={{ width: '45%' }} />
             </div>
             <div className={styles.illo_label}>Conflict-free Timetable Generated</div>
           </div>
