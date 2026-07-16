@@ -347,193 +347,109 @@ export default function LandingPage({ onGetStarted }) {
 }
 
 /* ─────────────────────────────────────────────
-   Developer / Founder Section
+   Developer / Founder Section  (compact, beige)
 ───────────────────────────────────────────── */
-const CODE_CHARS = ['0','1','{','}','<','>','/','=',';','(',')','.','#','&','|','!','~','$','%','+','-','*','@','[',']'];
-const FLOAT_SNIPPETS = [
-  'const timetable = generate();',
-  'if (conflict) resolve();',
-  'Graph.shortestPath()',
-  'db.query(schedule)',
+const DEV_SNIPPETS = [
+  'graph.solve()',
   'O(n log n)',
-  'Spring @RestController',
-  'useEffect(() => {})',
-  'SELECT * FROM slots',
-  'class Scheduler {',
-  'optimize(constraints)',
+  'optimize()',
+  '@SpringBoot',
+  'useEffect',
+  'SELECT slots',
+  '{ conflict: 0 }',
+  'build(timetable)',
 ];
+const DEV_TECH = ['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms'];
 
 function DeveloperSection() {
-  const canvasRef  = useRef(null);
-  const sectionRef = useRef(null);
-  const [mouse, setMouse] = React.useState({ x: 0.5, y: 0.5 });
-  const [loaded, setLoaded] = React.useState(false);
-
-  // Mouse tracking for portrait parallax
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const onMove = (e) => {
-      const r = el.getBoundingClientRect();
-      setMouse({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height });
-    };
-    el.addEventListener('mousemove', onMove);
-    return () => el.removeEventListener('mousemove', onMove);
-  }, []);
-
-  // ASCII canvas portrait effect
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = '/kinjal.jpg';
-    img.onload = () => {
-      setLoaded(true);
-      const W = canvas.width  = canvas.offsetWidth;
-      const H = canvas.height = canvas.offsetHeight;
-
-      // Draw image to offscreen canvas to sample pixels
-      const off = document.createElement('canvas');
-      // Scale to fit portrait with proper aspect
-      const imgAspect = img.naturalWidth / img.naturalHeight;
-      const canAspect = W / H;
-      let drawW, drawH, drawX, drawY;
-      if (imgAspect > canAspect) { drawH = H; drawW = H * imgAspect; } 
-      else { drawW = W; drawH = W / imgAspect; }
-      drawX = (W - drawW) / 2; drawY = (H - drawH) / 2;
-      off.width = W; off.height = H;
-      const oc = off.getContext('2d');
-      oc.drawImage(img, drawX, drawY, drawW, drawH);
-
-      const COLS = 72, ROWS = 90;
-      const cw = W / COLS, ch = H / ROWS;
-
-      ctx.clearRect(0, 0, W, H);
-      ctx.font = `${Math.max(6, cw * 0.8)}px monospace`;
-      ctx.textAlign = 'center';
-
-      for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-          const px = Math.floor((col / COLS) * W);
-          const py = Math.floor((row / ROWS) * H);
-          const pxData = oc.getImageData(px, py, 1, 1).data;
-          const [r, g, b, a] = pxData;
-          if (a < 30) continue;
-
-          // Brightness → character density
-          const bright = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-          const charIdx = Math.floor(bright * (CODE_CHARS.length - 1));
-          const char = CODE_CHARS[charIdx];
-
-          // Slightly desaturate & tint toward brand colours
-          const alpha = 0.55 + bright * 0.45;
-          ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
-          ctx.fillText(char, col * cw + cw / 2, row * ch + ch);
-        }
-      }
-    };
-    img.onerror = () => setLoaded(true); // fallback: just show img
-  }, []);
-
-  const px = (mouse.x - 0.5) * 22;
-  const py = (mouse.y - 0.5) * 14;
-
-  const TECH = ['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms', 'Optimization Techniques'];
+  const imgRef = useRef(null);
+  const [hover, setHover] = React.useState(false);
 
   return (
-    <section className={styles.dev_section} id="team" ref={sectionRef}>
-      {/* bg grid */}
-      <div className={styles.dev_bg_grid} aria-hidden="true" />
-
-      {/* floating code snippets */}
-      {FLOAT_SNIPPETS.map((s, i) => (
-        <div
-          key={i}
-          className={styles.float_snippet}
-          style={{
-            top:  `${8 + (i * 8.5) % 80}%`,
-            left: i % 2 === 0 ? `${2 + (i * 3) % 8}%` : `${78 + (i * 2) % 18}%`,
-            animationDelay: `${i * 0.7}s`,
-            animationDuration: `${14 + (i % 4) * 3}s`,
-          }}
-          aria-hidden="true"
-        >{s}</div>
-      ))}
+    <section className={styles.dev_section} id="team">
+      {/* Soft gradient bg */}
+      <div className={styles.dev_bg} aria-hidden="true" />
 
       <div className={styles.dev_inner}>
-        {/* ── LEFT: Portrait ── */}
-        <div
-          className={styles.dev_portrait_wrap}
-          style={{ transform: `translate(${px * 0.4}px, ${py * 0.3}px)` }}
-        >
-          {/* Glow ring */}
-          <div className={styles.portrait_glow} aria-hidden="true" />
 
-          {/* Canvas ASCII portrait */}
-          <canvas ref={canvasRef} className={styles.portrait_canvas} />
+        {/* ── LEFT: compact photo ── */}
+        <div className={styles.dev_photo_col}>
 
-          {/* Fallback photo shown until canvas renders */}
-          {!loaded && (
-            <img src="/kinjal.jpg" alt="Kinjal Gupta" className={styles.portrait_fallback} />
-          )}
+          {/* Orbiting code symbols */}
+          {DEV_SNIPPETS.map((s, i) => (
+            <span
+              key={i}
+              className={styles.dev_orbit}
+              style={{
+                '--angle': `${i * (360 / DEV_SNIPPETS.length)}deg`,
+                animationDelay: `${i * -1.8}s`,
+              }}
+              aria-hidden="true"
+            >{s}</span>
+          ))}
 
-          {/* Name badge */}
-          <div className={styles.portrait_badge}>
-            <span className={styles.portrait_badge_dot} />
-            <span>Kinjal Gupta · CS Student & Developer</span>
+          {/* Photo frame */}
+          <div
+            className={`${styles.dev_photo_frame} ${hover ? styles.dev_photo_hovered : ''}`}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+          >
+            <img
+              ref={imgRef}
+              src="/kinjal.jpg"
+              alt="Kinjal Gupta — Developer of ScheduleFlow"
+              className={styles.dev_photo}
+            />
+            {/* code-pattern overlay */}
+            <div className={styles.dev_photo_overlay} aria-hidden="true">
+              <span>{'</>'}</span>
+            </div>
+          </div>
+
+          {/* Pill below photo */}
+          <div className={styles.dev_name_pill}>
+            <span className={styles.dev_status_dot} />
+            Kinjal Gupta · CS Student
           </div>
         </div>
 
-        {/* ── RIGHT: Story card ── */}
-        <div className={styles.dev_card}>
-          <div className={styles.dev_eyebrow}>Meet the Developer</div>
+        {/* ── RIGHT: story + mission + tech ── */}
+        <div className={styles.dev_content}>
+
+          {/* eyebrow */}
+          <div className={styles.dev_eyebrow}>The Developer Behind the Idea</div>
+
           <h2 className={styles.dev_heading}>Hi, I'm Kinjal</h2>
 
-          <div className={styles.dev_story}>
-            <p>
-              I am a Computer Science student and the developer behind ScheduleFlow.
-            </p>
-            <p>
-              While working with academic scheduling problems, I noticed how much time
-              schools and colleges spend manually managing teachers, classrooms, subjects
-              and constraints.
-            </p>
-            <p>
-              Creating timetables should not require endless Excel sheets and manual
-              adjustments. I built ScheduleFlow to solve this problem using optimization
-              algorithms and modern software engineering.
+          <p className={styles.dev_intro}>
+            I am a Computer Science student and the creator of ScheduleFlow.
+            I built it to simplify academic scheduling by combining software engineering
+            and optimization algorithms — turning endless spreadsheets into instant,
+            conflict-free timetables.
+          </p>
+
+          {/* Mission */}
+          <div className={styles.dev_mission_block}>
+            <div className={styles.dev_mission_label}>My Mission</div>
+            <p className={styles.dev_mission_text}>
+              "My mission is to transform real-world challenges into impactful technology
+              solutions by combining engineering, innovation, and creative problem-solving."
             </p>
           </div>
 
-          {/* Role */}
-          <div className={styles.dev_role_row}>
-            <span className={styles.dev_role_pill}>Software Engineer</span>
-            <span className={styles.dev_role_pill}>Full Stack Developer</span>
-          </div>
-
-          {/* Built with */}
-          <div className={styles.dev_tech_label}>Built with</div>
+          {/* Tech tags */}
           <div className={styles.dev_tech_row}>
-            {TECH.map(t => (
+            {DEV_TECH.map(t => (
               <span key={t} className={styles.dev_tech_chip}>{t}</span>
             ))}
           </div>
-
-          {/* Mission */}
-          <blockquote className={styles.dev_mission}>
-            "My mission is to transform real-world challenges into impactful technology
-            solutions by combining engineering, innovation, and creative problem-solving.
-            I strive to build scalable products that simplify complex processes, improve
-            experiences, and create meaningful impact through technology."
-          </blockquote>
         </div>
+
       </div>
     </section>
   );
 }
+
 
 /* ─────────────────────────────────────────────
    Separated component so it can manage its own
