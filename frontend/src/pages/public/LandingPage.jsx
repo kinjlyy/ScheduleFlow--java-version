@@ -1,15 +1,28 @@
 // src/pages/public/LandingPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './LandingPage.module.css';
 
-const FEATURES = [
-  { icon: '⚡', title: 'AI-Powered Scheduling', desc: 'DSatur graph coloring algorithm generates conflict-free timetables in seconds — no manual trial and error.' },
-  { icon: '📅', title: 'Constraint Management', desc: 'Set teacher weekly caps, period limits, and day-off constraints — enforced automatically at generation time.' },
-  { icon: '🔒', title: 'Real-time Validation', desc: 'See violations as you configure, so you catch conflicts before the algorithm even runs.' },
-  { icon: '📊', title: 'Workload Analytics', desc: 'Track teacher workload, section utilization, and scheduling efficiency from a live dashboard.' },
-  { icon: '📤', title: 'Export Anywhere', desc: 'Download timetables as CSV, push to Google Sheets, or share a direct link with your staff.' },
-  { icon: '👥', title: 'Multi-Section Support', desc: 'Manage unlimited sections and departments simultaneously with zero scheduling conflicts.' },
+const TECH_HIGHLIGHTS = [
+  { tag: 'Constraint Engine', title: 'Rules that actually stick', desc: 'Handles teacher availability, classroom capacity, subject requirements and academic rules automatically. No constraint is ignored.' },
+  { tag: 'Scheduling Algorithm', title: 'Graph-based optimization', desc: 'Uses DSatur graph coloring and intelligent scheduling logic to generate clash-free timetables across all sections simultaneously.' },
+  { tag: 'Real-Time Validation', title: 'Catch conflicts before they happen', desc: 'Detect scheduling violations as you configure data — not after publishing to students and faculty.' },
+  { tag: 'Institution Management', title: 'One platform, any scale', desc: 'Manage multiple departments, classes, sections and academic schedules from a single dashboard — from small schools to large universities.' },
 ];
+
+function useReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { el.classList.add(styles.revealed); observer.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
 
 const HOW_IT_WORKS = [
   { step: '01', title: 'Add your data', desc: 'Enter teachers, subjects, sections, and rooms. Import from CSV or fill the guided form.' },
@@ -142,20 +155,163 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section className={styles.features_section} id="about">
-        <div className={styles.section_header}>
-          <h2 className={styles.section_title}>Everything you need</h2>
-          <p className={styles.section_sub}>Powerful tools built for modern educational institutions</p>
+      {/* ── Problem / Solution ── */}
+      <section className={styles.ps_section} id="about">
+        <div className={styles.ps_header}>
+          <h2 className={styles.ps_heading}>
+            From manual scheduling chaos to<br />perfectly organized timetables
+          </h2>
+          <p className={styles.ps_sub}>
+            Schools and colleges spend countless hours creating timetables while balancing teachers, classrooms,
+            subjects, sections and academic constraints. ScheduleFlow automates this entire process.
+          </p>
         </div>
-        <div className={styles.features_grid}>
-          {FEATURES.map(f => (
-            <div key={f.title} className={styles.feature_card}>
-              <span className={styles.feature_icon}>{f.icon}</span>
-              <div className={styles.feature_title}>{f.title}</div>
-              <div className={styles.feature_desc}>{f.desc}</div>
+
+        <div className={styles.ps_split}>
+          {/* BEFORE */}
+          <div className={styles.ps_col}>
+            <div className={styles.ps_label_before}>Before ScheduleFlow</div>
+            <ul className={styles.ps_problems}>
+              {[
+                'Multiple Excel sheets across departments',
+                'Manual teacher allocation every semester',
+                'Classroom double-bookings discovered last minute',
+                'Section clashes nobody caught until day one',
+                'Last-minute timetable changes cascade into chaos',
+                'Hours of back-and-forth adjusting schedules',
+              ].map(p => (
+                <li key={p} className={styles.ps_problem_item}>
+                  <span className={styles.ps_x}>×</span>
+                  {p}
+                </li>
+              ))}
+            </ul>
+            {/* Messy spreadsheet visual */}
+            <div className={styles.messy_sheet}>
+              <div className={styles.sheet_header}>
+                <span className={styles.sheet_tab_active}>Sheet1</span>
+                <span className={styles.sheet_tab}>Sheet2</span>
+                <span className={styles.sheet_tab}>Sheet3 (copy)</span>
+                <span className={styles.sheet_tab}>FINAL_v3</span>
+              </div>
+              <div className={styles.sheet_grid}>
+                <div className={styles.sheet_row + ' ' + styles.sheet_row_head}>
+                  {['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => <div key={d} className={styles.sheet_cell_head}>{d}</div>)}
+                </div>
+                {[
+                  { period: 'P1', slots: ['Maths-A','—','Maths-A','Phys-B','—'] },
+                  { period: 'P2', slots: ['Eng-C','Maths-A','—','Maths-A','Chem-A'] },
+                  { period: 'P3', slots: ['—','Eng-C','Bio-D','—','Maths-A'] },
+                  { period: 'P4', slots: ['Phys-B','—','Eng-C','Bio-D','—'] },
+                ].map((row, ri) => (
+                  <div key={ri} className={styles.sheet_row}>
+                    <div className={styles.sheet_cell_period}>{row.period}</div>
+                    {row.slots.map((s, si) => (
+                      <div
+                        key={si}
+                        className={`${styles.sheet_cell} ${
+                          s === 'Maths-A' && (ri > 0 || si > 0) ? styles.sheet_conflict : ''
+                        } ${s === '—' ? styles.sheet_empty : ''}`}
+                      >
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className={styles.sheet_warning}>⚠ Conflict detected: Mr. Sharma — Mon P1 &amp; Tue P2</div>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <div className={styles.ps_arrow}>
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <path d="M8 20h24M24 12l8 8-8 8" stroke="#c9956a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* AFTER */}
+          <div className={styles.ps_col}>
+            <div className={styles.ps_label_after}>With ScheduleFlow</div>
+            <ul className={styles.ps_solutions}>
+              {[
+                'Timetable generated automatically in one click',
+                'Conflict-free scheduling across all sections',
+                'Teacher workload balanced within weekly caps',
+                'Multiple department support out of the box',
+                'Section-wise timetable with instant publish',
+                'Constraint violations caught before generation',
+              ].map(s => (
+                <li key={s} className={styles.ps_solution_item}>
+                  <span className={styles.ps_tick}>✓</span>
+                  {s}
+                </li>
+              ))}
+            </ul>
+            {/* Clean dashboard visual */}
+            <div className={styles.clean_dash}>
+              <div className={styles.dash_topbar}>
+                <span className={styles.dash_brand}>ScheduleFlow</span>
+                <span className={styles.dash_status}>All clear — 0 conflicts</span>
+              </div>
+              <div className={styles.dash_body}>
+                <div className={styles.dash_meta}>
+                  <span className={styles.dash_meta_item}><span className={styles.dash_dot_teal} />Sec A — Yr 2</span>
+                  <span className={styles.dash_meta_item}><span className={styles.dash_dot_amber} />Generated just now</span>
+                </div>
+                <div className={styles.dash_tt_grid}>
+                  <div className={styles.dash_col_head} />
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(d => (
+                    <div key={d} className={styles.dash_col_head}>{d}</div>
+                  ))}
+                  {[
+                    { period: '9:00', slots: ['Mathematics', 'Physics', 'English', 'Chemistry', 'Mathematics'] },
+                    { period: '10:00', slots: ['Physics', 'English', 'Mathematics', 'English', 'Biology'] },
+                    { period: '11:00', slots: ['English', 'Mathematics', 'Physics', 'Biology', 'Chemistry'] },
+                    { period: '12:00', slots: ['Chemistry', 'Biology', 'Chemistry', 'Mathematics', 'Physics'] },
+                  ].map((row, ri) => (
+                    <React.Fragment key={ri}>
+                      <div className={styles.dash_period}>{row.period}</div>
+                      {row.slots.map((subj, si) => (
+                        <div
+                          key={si}
+                          className={styles.dash_cell}
+                          style={{ animationDelay: `${(ri * 5 + si) * 60}ms` }}
+                        >
+                          {subj}
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Tech Highlights ── */}
+        <div className={styles.tech_grid}>
+          {TECH_HIGHLIGHTS.map((t, i) => (
+            <div key={t.tag} className={styles.tech_card} style={{ animationDelay: `${i * 80}ms` }}>
+              <div className={styles.tech_tag}>{t.tag}</div>
+              <div className={styles.tech_title}>{t.title}</div>
+              <p className={styles.tech_desc}>{t.desc}</p>
             </div>
           ))}
+        </div>
+
+        {/* ── Trust Strip ── */}
+        <div className={styles.trust_strip}>
+          <div className={styles.trust_heading}>Built for modern education systems</div>
+          <div className={styles.trust_types}>
+            {['Schools', 'Colleges', 'Universities', 'Training Institutes'].map(t => (
+              <div key={t} className={styles.trust_type}>{t}</div>
+            ))}
+          </div>
+          <p className={styles.trust_desc}>
+            Whether managing a small school timetable or a large college with multiple departments,
+            ScheduleFlow adapts to your academic structure.
+          </p>
         </div>
       </section>
 
