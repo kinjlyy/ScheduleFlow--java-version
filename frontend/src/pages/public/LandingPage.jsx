@@ -347,139 +347,136 @@ export default function LandingPage({ onGetStarted }) {
 }
 
 /* ─────────────────────────────────────────────
-   Developer / Founder Section  (compact, beige)
+   Developer / Founder Section  — Animated Avatar
 ───────────────────────────────────────────── */
-const DEV_SNIPPETS = [
-  { text: '{\n  conflict: 0\n}', delay: '0s', duration: '8s', top: '12%', left: '-8%' },
-  { text: 'graph.solve()', delay: '1s', duration: '9s', top: '35%', left: '84%' },
-  { text: 'build(timetable)', delay: '2.5s', duration: '10s', top: '72%', left: '74%' },
-  { text: '@SpringBoot', delay: '0.8s', duration: '7.5s', top: '68%', left: '-12%' },
-  { text: 'optimize()', delay: '1.8s', duration: '11s', top: '88%', left: '32%' },
-  { text: 'O(n log n)', delay: '3s', duration: '8.5s', top: '48%', left: '-18%' },
-  { text: 'SELECT slots', delay: '1.2s', duration: '9.5s', top: '8%', left: '68%' },
-  { text: 'useEffect()', delay: '2.2s', duration: '10.5s', top: '40%', left: '-10%' },
+const DEV_TAGS = [
+  { label: '{ conflict: 0 }',  icon: null,   top: '10%',  left: '-5%',  delay: '0s',   dur: '7s'  },
+  { label: 'graph.solve()',     icon: '</>',  top: '30%',  left: '88%',  delay: '1.2s', dur: '9s'  },
+  { label: 'build(timetable)', icon: null,   top: '68%',  left: '80%',  delay: '2s',   dur: '8s'  },
+  { label: '@SpringBoot',      icon: '🍃',   top: '72%',  left: '-6%',  delay: '0.6s', dur: '10s' },
+  { label: 'optimize()',       icon: '⚡',   top: '90%',  left: '38%',  delay: '1.8s', dur: '11s' },
+  { label: 'O(n log n)',       icon: '📊',   top: '50%',  left: '-14%', delay: '3s',   dur: '8.5s'},
+  { label: 'SELECT slots',     icon: '🗄️',  top: '6%',   left: '62%',  delay: '1s',   dur: '9.5s'},
+  { label: 'useEffect()',      icon: '⚛️',  top: '44%',  left: '-8%',  delay: '2.4s', dur: '10.5s'},
+];
+
+const CODE_LINES = [
+  'function buildSchedule() {',
+  '  graph.solve(slots);',
+  '  return optimize(result);',
+  '}',
 ];
 
 function DeveloperSection() {
-  const frameRef = useRef(null);
-  const [coords, setCoords] = React.useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [visibleLines, setVisibleLines] = React.useState(0);
+  const sectionRef = useRef(null);
+  const started = useRef(false);
 
-  const handleMouseMove = (e) => {
-    const el = frameRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
-    const y = (e.clientY - rect.top) / rect.height - 0.5;  // -0.5 to 0.5
-    setCoords({ x, y });
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setCoords({ x: 0, y: 0 });
-  };
-
-  // 3D rotation values
-  const rotateX = coords.y * -24; // tilt up/down
-  const rotateY = coords.x * 24;  // tilt left/right
-  const glareX = (coords.x + 0.5) * 100;
-  const glareY = (coords.y + 0.5) * 100;
+  // Scroll-triggered typewriter on code lines
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          let i = 0;
+          const tick = () => {
+            i++;
+            setVisibleLines(i);
+            if (i < CODE_LINES.length) setTimeout(tick, 600);
+          };
+          setTimeout(tick, 400);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section className={styles.dev_section} id="team">
-      {/* Warm beige gradient background */}
+    <section className={styles.dev_section} id="team" ref={sectionRef}>
+      {/* Warm bg */}
       <div className={styles.dev_bg} aria-hidden="true" />
 
       <div className={styles.dev_inner}>
 
-        {/* ── LEFT: Interactive 3D Avatar ── */}
-        <div className={styles.dev_photo_col}>
+        {/* ══ LEFT: Animated Avatar ══ */}
+        <div className={styles.dev_avatar_col}>
 
-          {/* Floating glassmorphism code tags */}
-          {DEV_SNIPPETS.map((s, i) => (
+          {/* Floating glass code tags */}
+          {DEV_TAGS.map((t, i) => (
             <span
               key={i}
               className={styles.dev_glass_tag}
-              style={{
-                top: s.top,
-                left: s.left,
-                animationDelay: s.delay,
-                animationDuration: s.duration,
-              }}
+              style={{ top: t.top, left: t.left, animationDelay: t.delay, animationDuration: t.dur }}
               aria-hidden="true"
             >
-              <pre>{s.text}</pre>
+              {t.icon && <span className={styles.tag_icon}>{t.icon}</span>}
+              {t.label}
             </span>
           ))}
 
-          {/* 3D Photo card wrapper */}
-          <div
-            ref={frameRef}
-            className={`${styles.dev_photo_3d_wrapper} ${isHovered ? styles.dev_photo_active : ''}`}
-            onMouseMove={handleMouseMove}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={handleMouseLeave}
-            style={{
-              transform: `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-            }}
-          >
-            {/* Ambient gold/teal glow behind photo */}
-            <div className={styles.dev_glow_ring} />
+          {/* Avatar scene */}
+          <div className={styles.avatar_scene}>
+            <img
+              src="/kinjal_avatar.png"
+              alt="Kinjal Gupta — Developer of ScheduleFlow"
+              className={styles.avatar_img}
+            />
 
-            {/* Photo layer */}
-            <div className={styles.dev_photo_container}>
-              <img
-                src="/kinjal.jpg"
-                alt="Kinjal Gupta — Developer of ScheduleFlow"
-                className={styles.dev_actual_photo}
-              />
-              {/* Dynamic glare/shimmer based on mouse position */}
-              {isHovered && (
-                <div
-                  className={styles.dev_glare}
-                  style={{
-                    background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255, 255, 255, 0.45) 0%, transparent 60%)`,
-                  }}
-                />
+            {/* Laptop screen code animation overlay */}
+            <div className={styles.laptop_screen}>
+              {CODE_LINES.slice(0, visibleLines).map((line, i) => (
+                <div key={i} className={styles.code_line} style={{ animationDelay: `${i * 0.1}s` }}>
+                  {line}
+                </div>
+              ))}
+              {visibleLines < CODE_LINES.length && (
+                <span className={styles.cursor_blink}>▋</span>
               )}
             </div>
-
-            {/* Simulated blink/reflection scanlines */}
-            <div className={styles.dev_scanline} />
           </div>
 
-          {/* Status badge below photo */}
+          {/* Status pill */}
           <div className={styles.dev_badge_pill}>
             <span className={styles.dev_badge_status_dot} />
-            <span>Kinjal Gupta · Developer</span>
+            <span>Kinjal Gupta · CS Student & Developer</span>
           </div>
         </div>
 
-        {/* ── RIGHT: Copy, Mission and Tags ── */}
+        {/* ══ RIGHT: Story card ══ */}
         <div className={styles.dev_content}>
           <div className={styles.dev_eyebrow}>Meet the Developer</div>
           <h2 className={styles.dev_heading}>Hi, I'm Kinjal</h2>
 
           <p className={styles.dev_intro}>
             I am a Computer Science student and the developer behind ScheduleFlow.
-            I build technology solutions that transform real-world challenges into scalable
-            software products. ScheduleFlow was created to simplify academic scheduling
-            using algorithms, automation, and modern engineering.
+            I build software solutions that transform real-world problems into
+            impactful technology — turning hours of manual scheduling into
+            instant, conflict-free timetables.
           </p>
 
-          {/* Mission */}
           <div className={styles.dev_mission_card}>
             <div className={styles.dev_mission_header}>My Mission</div>
             <p className={styles.dev_mission_quote}>
-              "My mission is to transform real-world challenges into impactful technology
-              solutions by combining engineering, innovation, and creative problem-solving."
+              "My mission is to combine engineering, algorithms, and creativity
+              to build products that simplify everyday challenges and create
+              meaningful impact through technology."
             </p>
           </div>
 
-          {/* Tags */}
+          {/* Technologies */}
+          <div className={styles.dev_tech_label}>Built with</div>
           <div className={styles.dev_tags_row}>
-            {['Software Engineer', 'Full Stack Developer', 'Problem Solver'].map(t => (
+            {['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms'].map(t => (
               <span key={t} className={styles.dev_tag_chip}>{t}</span>
+            ))}
+          </div>
+
+          {/* Role chips */}
+          <div className={styles.dev_roles_row}>
+            {['Software Engineer', 'Full Stack Developer', 'Problem Solver'].map(r => (
+              <span key={r} className={styles.dev_role_chip}>{r}</span>
             ))}
           </div>
         </div>
@@ -488,8 +485,6 @@ function DeveloperSection() {
     </section>
   );
 }
-
-
 
 
 /* ─────────────────────────────────────────────

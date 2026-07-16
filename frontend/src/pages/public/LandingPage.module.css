@@ -804,23 +804,22 @@
 
 
 /* ══════════════════════════════════════════
-   DEVELOPER / FOUNDER SECTION (COMPACT BEIGE)
+   DEVELOPER / FOUNDER SECTION — ANIMATED AVATAR
 ══════════════════════════════════════════ */
 .dev_section {
   position: relative;
   overflow: hidden;
   padding: 96px 60px;
-  background: #faf6f2; /* Matches cream theme */
+  background: #faf6f2;
 }
 
-/* Warm moving gradient in background */
 .dev_bg {
   position: absolute;
   inset: 0;
-  background: 
-    radial-gradient(circle at 10% 20%, rgba(201, 149, 106, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(10, 191, 188, 0.05) 0%, transparent 40%);
-  filter: blur(50px);
+  background:
+    radial-gradient(circle at 8% 15%, rgba(201, 149, 106, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 92% 85%, rgba(10, 191, 188, 0.06) 0%, transparent 40%);
+  filter: blur(60px);
   z-index: 0;
   pointer-events: none;
 }
@@ -829,179 +828,176 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.1fr 1.3fr;
+  grid-template-columns: 1fr 1.2fr;
   gap: 72px;
   align-items: center;
-  max-width: 1040px;
+  max-width: 1060px;
   margin: 0 auto;
 }
 
-/* ── LEFT: 3D Photo Column ── */
-.dev_photo_col {
+/* ══ LEFT: Avatar Column ══ */
+.dev_avatar_col {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 380px;
+  min-height: 420px;
 }
 
-/* Interactive 3D Photo Card Wrapper */
-.dev_photo_3d_wrapper {
+/* The avatar scene — contains the avatar image */
+.avatar_scene {
   position: relative;
-  width: 220px;
-  height: 220px;
-  border-radius: 32px;
-  background: #ffffff;
-  box-shadow: 
-    0 16px 40px rgba(201, 149, 106, 0.12),
-    0 0 0 1px rgba(201, 149, 106, 0.08);
-  transition: transform 0.1s ease-out, box-shadow 0.3s ease;
-  transform-style: preserve-3d;
+  width: 360px;
+  max-width: 100%;
   z-index: 2;
-  cursor: pointer;
-  will-change: transform;
+  animation: avatarFloat 5s ease-in-out infinite;
+  filter: drop-shadow(0 20px 32px rgba(201, 149, 106, 0.18));
 }
 
-.dev_photo_active {
-  box-shadow: 
-    0 24px 60px rgba(201, 149, 106, 0.2),
-    0 0 0 1px rgba(201, 149, 106, 0.12);
+@keyframes avatarFloat {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
-/* Ambient gold/teal glow behind the card */
-.dev_glow_ring {
-  position: absolute;
-  inset: -15px;
-  border-radius: 40px;
-  background: radial-gradient(circle, rgba(201, 149, 106, 0.12) 0%, rgba(10, 191, 188, 0.04) 60%, transparent 100%);
-  z-index: -1;
-  pointer-events: none;
-  transform: translateZ(-20px);
-}
-
-/* Photo Layer */
-.dev_photo_container {
-  position: relative;
+.avatar_img {
   width: 100%;
-  height: 100%;
-  border-radius: 32px;
-  overflow: hidden;
-  border: 4px solid #ffffff;
-  transform: translateZ(10px);
-  background: #ffffff;
-}
-
-.dev_actual_photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
+  border-radius: 20px;
 }
 
-/* Interactive reflection/glare effect */
-.dev_glare {
+/* Laptop screen code lines overlay */
+.laptop_screen {
   position: absolute;
-  inset: 0;
+  bottom: 28%;
+  left: 31%;
+  width: 36%;
+  height: 16%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 4px 6px;
   pointer-events: none;
   z-index: 3;
-  mix-blend-mode: overlay;
-  transition: opacity 0.15s ease;
 }
 
-/* Simulated Scanline */
-.dev_scanline {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(to right, transparent, rgba(201, 149, 106, 0.3), transparent);
-  z-index: 4;
-  pointer-events: none;
-  animation: scan 6s linear infinite;
-  opacity: 0.7;
+.code_line {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.5rem;
+  color: #059669;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: typeIn 0.3s ease forwards;
+  opacity: 0;
 }
 
-@keyframes scan {
-  0% { transform: translateY(0); opacity: 0; }
-  5% { opacity: 0.7; }
-  95% { opacity: 0.7; }
-  100% { transform: translateY(220px); opacity: 0; }
+@keyframes typeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Floating Glassmorphism tags */
+.cursor_blink {
+  font-family: monospace;
+  font-size: 0.55rem;
+  color: #c9956a;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Floating Glassmorphism code tags */
 .dev_glass_tag {
   position: absolute;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  padding: 6px 12px;
-  box-shadow: 
-    0 4px 16px rgba(201, 149, 106, 0.06),
-    0 0 0 1px rgba(201, 149, 106, 0.04);
-  z-index: 3;
-  pointer-events: none;
-  animation: floatSnippet ease-in-out infinite alternate;
-}
-
-.dev_glass_tag pre {
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 149, 106, 0.18);
+  border-radius: 10px;
+  padding: 5px 12px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #a07050;
-  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(201, 149, 106, 0.08);
+  z-index: 5;
+  pointer-events: none;
+  animation: floatTag ease-in-out infinite alternate;
 }
 
-@keyframes floatSnippet {
-  0%   { transform: translateY(0px) rotate(-1deg); }
-  100% { transform: translateY(-8px) rotate(1deg); }
+.tag_icon {
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
-/* Status badge below photo */
+@keyframes floatTag {
+  0%   { transform: translateY(0px)  scale(1);    }
+  100% { transform: translateY(-9px) scale(1.02); }
+}
+
+/* Status badge */
 .dev_badge_pill {
-  margin-top: 24px;
+  margin-top: 20px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   background: #ffffff;
   border: 1px solid rgba(201, 149, 106, 0.15);
-  padding: 6px 16px;
+  padding: 6px 18px;
   border-radius: 100px;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text);
-  box-shadow: 0 4px 10px rgba(201, 149, 106, 0.03);
+  box-shadow: 0 4px 12px rgba(201, 149, 106, 0.05);
   z-index: 1;
 }
 
 .dev_badge_status_dot {
-  width: 7px; height: 7px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #059669;
-  box-shadow: 0 0 6px #059669;
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.6);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-/* ── RIGHT: Copy, Mission and Tags ── */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(5, 150, 105, 0.6); }
+  50%       { box-shadow: 0 0 12px rgba(5, 150, 105, 0.9); }
+}
+
+/* ══ RIGHT: Story card ══ */
 .dev_content {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(201, 149, 106, 0.08);
-  padding: 36px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 149, 106, 0.1);
+  padding: 36px 40px;
   border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(201, 149, 106, 0.03);
+  box-shadow:
+    0 4px 24px rgba(201, 149, 106, 0.04),
+    0 1px 0 rgba(255,255,255,0.8) inset;
 }
 
 .dev_eyebrow {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
   color: #c9956a;
 }
 
@@ -1012,48 +1008,86 @@
   color: var(--text);
   margin: 0;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .dev_intro {
   font-size: 0.94rem;
   color: var(--text2);
-  line-height: 1.7;
+  line-height: 1.75;
   margin: 0;
 }
 
-/* Mission Block */
+/* Mission block */
 .dev_mission_card {
   border-left: 3px solid #c9956a;
   padding-left: 16px;
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .dev_mission_header {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .dev_mission_quote {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   color: var(--text);
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
   font-style: italic;
 }
 
-/* Tech tag row */
+/* Built-with label */
+.dev_tech_label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* Tech chips */
 .dev_tags_row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dev_tag_chip {
+  padding: 5px 13px;
+  background: rgba(201, 149, 106, 0.07);
+  border: 1px solid rgba(201, 149, 106, 0.18);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  color: #9a6840;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.dev_tag_chip:hover {
+  background: rgba(201, 149, 106, 0.14);
+  border-color: #c9956a;
+  color: #7a5030;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(201, 149, 106, 0.1);
+}
+
+/* Role pills */
+.dev_roles_row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 4px;
 }
 
-.dev_tag_chip {
+.dev_role_chip {
   padding: 5px 14px;
   background: #ffffff;
   border: 1px solid rgba(201, 149, 106, 0.15);
@@ -1065,7 +1099,7 @@
   cursor: default;
 }
 
-.dev_tag_chip:hover {
+.dev_role_chip:hover {
   background: #faf6f2;
   border-color: #c9956a;
   color: #c9956a;
@@ -1074,27 +1108,17 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
-  .dev_inner {
-    grid-template-columns: 1fr;
-    gap: 48px;
-  }
-  .dev_photo_col {
-    min-height: auto;
-    padding: 20px 0;
-  }
-  .dev_glass_tag {
-    display: none; /* Hide snippet tags on smaller devices to prevent overlaps */
-  }
+@media (max-width: 960px) {
+  .dev_inner { grid-template-columns: 1fr; gap: 48px; }
+  .dev_avatar_col { min-height: auto; }
+  .dev_glass_tag { display: none; }
+  .avatar_scene { width: 300px; }
 }
 
 @media (max-width: 580px) {
-  .dev_section {
-    padding: 60px 24px;
-  }
-  .dev_content {
-    padding: 28px;
-  }
+  .dev_section { padding: 60px 24px; }
+  .dev_content { padding: 28px 24px; }
+  .avatar_scene { width: 260px; }
 }
 
 
