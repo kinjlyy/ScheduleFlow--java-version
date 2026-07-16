@@ -375,7 +375,6 @@ function DeveloperSection() {
     img.src = '/kinjal.jpg';
     img.onload = () => {
       setLoaded(true);
-      // Set internal coordinates higher for high-DPI crispness
       const size = 300;
       canvas.width = size;
       canvas.height = size;
@@ -386,7 +385,6 @@ function DeveloperSection() {
       tempCanvas.height = size;
       const tempCtx = tempCanvas.getContext('2d');
       
-      // Calculate crop to make it a perfect square
       const minDim = Math.min(img.naturalWidth, img.naturalHeight);
       const sx = (img.naturalWidth - minDim) / 2;
       const sy = (img.naturalHeight - minDim) / 2;
@@ -397,32 +395,69 @@ function DeveloperSection() {
       const cellW = size / COLS;
       const cellH = size / ROWS;
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, size, size);
-
-      ctx.font = 'bold 5.5px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
       const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
+      // Build grid state in memory
+      const grid = [];
       for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
           const px = Math.floor(x * cellW + cellW / 2);
           const py = Math.floor(y * cellH + cellH / 2);
           const pixel = tempCtx.getImageData(px, py, 1, 1).data;
-          const [r, g, b, a] = pixel;
-
-          // Calculate brightness
+          const [r, g, b] = pixel;
           const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-          // Determine a digit
-          const digitIdx = Math.floor(brightness * (digits.length - 1));
-          const char = digits[digitIdx];
+          const initialDigitIdx = Math.floor(brightness * (digits.length - 1));
 
-          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-          ctx.fillText(char, x * cellW + cellW / 2, y * cellH + cellH / 2);
+          grid.push({
+            x: x * cellW + cellW / 2,
+            y: y * cellH + cellH / 2,
+            color: `rgb(${r}, ${g}, ${b})`,
+            digitIdx: initialDigitIdx,
+            baseIdx: initialDigitIdx // Keep baseline index to stay near original brightness
+          });
         }
       }
+
+      let animId;
+      let lastTime = 0;
+      const fps = 12; // Moderate fps for performance and cool look
+      const interval = 1000 / fps;
+
+      const draw = (timestamp) => {
+        animId = requestAnimationFrame(draw);
+
+        if (timestamp - lastTime < interval) return;
+        lastTime = timestamp;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.font = 'bold 5.5px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        for (let i = 0; i < grid.length; i++) {
+          const cell = grid[i];
+
+          // 8% chance each frame to cycle a digit's index
+          if (Math.random() < 0.08) {
+            // Jitter around base index to keep shape/contrast intact
+            const jitter = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+            let newIdx = cell.baseIdx + jitter;
+            if (newIdx < 0) newIdx = 0;
+            if (newIdx >= digits.length) newIdx = digits.length - 1;
+            cell.digitIdx = newIdx;
+          }
+
+          ctx.fillStyle = cell.color;
+          ctx.fillText(digits[cell.digitIdx], cell.x, cell.y);
+        }
+      };
+
+      animId = requestAnimationFrame(draw);
+
+      return () => {
+        cancelAnimationFrame(animId);
+      };
     };
     img.onerror = () => {
       setLoaded(true);
