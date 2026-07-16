@@ -359,11 +359,75 @@ const DEV_SNIPPETS = [
   '{ conflict: 0 }',
   'build(timetable)',
 ];
-const DEV_TECH = ['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms'];
 
 function DeveloperSection() {
-  const imgRef = useRef(null);
+  const canvasRef = useRef(null);
   const [hover, setHover] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = '/kinjal.jpg';
+    img.onload = () => {
+      setLoaded(true);
+      // Set internal coordinates higher for high-DPI crispness
+      const size = 300;
+      canvas.width = size;
+      canvas.height = size;
+
+      // Draw original image on temp canvas to extract colors
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Calculate crop to make it a perfect square
+      const minDim = Math.min(img.naturalWidth, img.naturalHeight);
+      const sx = (img.naturalWidth - minDim) / 2;
+      const sy = (img.naturalHeight - minDim) / 2;
+      tempCtx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+
+      const COLS = 75;
+      const ROWS = 75;
+      const cellW = size / COLS;
+      const cellH = size / ROWS;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+
+      ctx.font = 'bold 5.5px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          const px = Math.floor(x * cellW + cellW / 2);
+          const py = Math.floor(y * cellH + cellH / 2);
+          const pixel = tempCtx.getImageData(px, py, 1, 1).data;
+          const [r, g, b, a] = pixel;
+
+          // Calculate brightness
+          const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+          // Determine a digit
+          const digitIdx = Math.floor(brightness * (digits.length - 1));
+          const char = digits[digitIdx];
+
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.fillText(char, x * cellW + cellW / 2, y * cellH + cellH / 2);
+        }
+      }
+    };
+    img.onerror = () => {
+      setLoaded(true);
+    };
+  }, []);
 
   return (
     <section className={styles.dev_section} id="team">
@@ -394,12 +458,18 @@ function DeveloperSection() {
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
           >
-            <img
-              ref={imgRef}
-              src="/kinjal.jpg"
-              alt="Kinjal Gupta — Developer of ScheduleFlow"
+            <canvas
+              ref={canvasRef}
               className={styles.dev_photo}
+              style={{ display: loaded ? 'block' : 'none' }}
             />
+            {!loaded && (
+              <img
+                src="/kinjal.jpg"
+                alt="Kinjal Gupta"
+                className={styles.dev_photo}
+              />
+            )}
             {/* code-pattern overlay */}
             <div className={styles.dev_photo_overlay} aria-hidden="true">
               <span>{'</>'}</span>
@@ -413,7 +483,7 @@ function DeveloperSection() {
           </div>
         </div>
 
-        {/* ── RIGHT: story + mission + tech ── */}
+        {/* ── RIGHT: story + mission ── */}
         <div className={styles.dev_content}>
 
           {/* eyebrow */}
@@ -436,19 +506,13 @@ function DeveloperSection() {
               solutions by combining engineering, innovation, and creative problem-solving."
             </p>
           </div>
-
-          {/* Tech tags */}
-          <div className={styles.dev_tech_row}>
-            {DEV_TECH.map(t => (
-              <span key={t} className={styles.dev_tech_chip}>{t}</span>
-            ))}
-          </div>
         </div>
 
       </div>
     </section>
   );
 }
+
 
 
 /* ─────────────────────────────────────────────
