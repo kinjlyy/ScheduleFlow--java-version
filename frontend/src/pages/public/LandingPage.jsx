@@ -54,7 +54,6 @@ export default function LandingPage({ onGetStarted }) {
       {/* ── Hero ── */}
       <section className={styles.hero} id="home">
         <div className={styles.hero_content}>
-          <div className={styles.hero_badge}>🎓 Built for Educational Institutions</div>
           <h1 className={styles.hero_title}>
             Unified Timetable and College<br />Solutions Powered by AI
           </h1>
