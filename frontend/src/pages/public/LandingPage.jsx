@@ -359,47 +359,54 @@ const DEV_TAGS = [
   { label: 'useEffect()',      icon: '⚛️',  top: '42%',  left: '-6%',  delay: '2.4s', dur: '10.5s'},
 ];
 
-// Code lines typed on the laptop screen
 const SCREEN_LINES = [
-  { text: 'buildSchedule()',    delay: 0    },
-  { text: 'graph.solve()',      delay: 700  },
-  { text: 'optimize()',         delay: 1400 },
-  { text: 'conflict = 0',       delay: 2100 },
-  { text: 'return timetable;',  delay: 2800 },
+  'buildSchedule()',
+  'graph.solve()',
+  'optimize()',
+  'conflict = 0',
+  'return timetable;',
 ];
 
-// Particles that fly out of laptop toward the right column
-const PARTICLES = [
-  { text: 'Hi, I\'m Kinjal',               delay: 3200,  x: 90,  y: -40 },
-  { text: 'buildSchedule()',                delay: 3500,  x: 120, y: -10 },
-  { text: 'conflict: 0',                   delay: 3800,  x: 100, y: 20  },
-  { text: 'CS Student & Developer',        delay: 4100,  x: 130, y: -55 },
-  { text: 'optimize(result)',              delay: 4400,  x: 80,  y: 50  },
-  { text: 'graph.shortestPath()',          delay: 4700,  x: 140, y: 10  },
-];
+// Typewriter component for word-by-word continuous text reveal
+function TypewriterWord({ text, active, speed = 35, onComplete }) {
+  const [displayed, setDisplayed] = React.useState('');
 
-// Story text that reveals sequentially as if "generated" by the laptop
-const STORY_ITEMS = [
-  { type: 'eyebrow', text: 'Meet the Developer',                                               delay: 1000 },
-  { type: 'heading', text: "Hi, I'm Kinjal",                                                  delay: 1600 },
-  { type: 'para',    text: 'I am a Computer Science student and the developer behind ScheduleFlow. I build software solutions that transform real-world problems into impactful technology — turning hours of manual scheduling into instant, conflict-free timetables.', delay: 2400 },
-  { type: 'mission', text: '"My mission is to combine engineering, algorithms, and creativity to build products that simplify everyday challenges and create meaningful impact through technology."', delay: 3200 },
-];
+  React.useEffect(() => {
+    if (!active) return;
+    let i = 0;
+    const words = text.split(' ');
+    const interval = setInterval(() => {
+      if (i < words.length) {
+        setDisplayed(words.slice(0, i + 1).join(' '));
+        i++;
+      } else {
+        clearInterval(interval);
+        if (onComplete) onComplete();
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, active, speed, onComplete]);
+
+  return <span>{displayed}</span>;
+}
 
 function DeveloperSection() {
-  const sectionRef  = useRef(null);
-  const started     = useRef(false);
+  const sectionRef = useRef(null);
+  const started = useRef(false);
 
-  // Animation phases driven by IntersectionObserver
-  const [phase, setPhase] = React.useState(0);
-  // 0 = hidden | 1 = avatar in | 2 = screen on | 3 = typing | 4 = particles | 5 = story text
+  const [phase, setPhase] = React.useState(0); // 0 = hidden, 1 = active
+  const [activeStep, setActiveStep] = React.useState(-1); // -1 = not started, 0 = eyebrow, 1 = heading, 2 = intro, 3 = mission, 4 = chips
+  const [screenLines, setScreenLines] = React.useState([]);
+  const [particles, setParticles] = React.useState([]);
 
-  // Which laptop screen lines are visible
-  const [screenLines, setScreenLines]   = React.useState([]);
-  // Which particles are flying
-  const [activeParticles, setActiveParticles] = React.useState([]);
-  // Which story items are revealed (indices)
-  const [revealedItems, setRevealedItems] = React.useState([]);
+  // Trigger floating code particle from laptop
+  const spawnParticle = (text, x = 120, y = -30) => {
+    const id = Date.now() + Math.random();
+    setParticles(prev => [...prev, { id, text, x, y }]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => p.id !== id));
+    }, 2200);
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -407,52 +414,50 @@ function DeveloperSection() {
         if (!entry.isIntersecting || started.current) return;
         started.current = true;
 
-        // Phase 1 – avatar fades in
         setPhase(1);
-
-        // Phase 2 – screen glows on
-        setTimeout(() => setPhase(2), 500);
-
-        // Phase 3 – code lines type one by one
+        // Start typewriter chain immediately
         setTimeout(() => {
-          setPhase(3);
-          SCREEN_LINES.forEach(({ text, delay }) => {
-            setTimeout(() => setScreenLines(prev => [...prev, text]), delay);
-          });
-        }, 800);
-
-        // Phase 4 – particles burst from laptop
-        setTimeout(() => {
-          setPhase(4);
-          PARTICLES.forEach(({ text, delay, x, y }) => {
-            setTimeout(() => {
-              setActiveParticles(prev => [...prev, { text, x, y, id: Date.now() + delay }]);
-            }, delay - 3200);
-          });
-        }, 3200);
-
-        // Phase 5 – story text reveals
-        setTimeout(() => {
-          setPhase(5);
-          STORY_ITEMS.forEach((_, i) => {
-            setTimeout(() => setRevealedItems(prev => [...prev, i]), i * 600);
-          });
-        }, 4000);
+          setActiveStep(0);
+        }, 300);
       },
-      { threshold: 0.25 }
+      { threshold: 0.15 }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, []);
 
+  // Sync screen code lines typing with the right side steps
+  useEffect(() => {
+    if (activeStep === 0) {
+      setScreenLines([SCREEN_LINES[0]]);
+      spawnParticle('buildSchedule()');
+    } else if (activeStep === 1) {
+      setScreenLines(prev => [...prev, SCREEN_LINES[1]]);
+      spawnParticle('graph.solve()', 140, -60);
+    } else if (activeStep === 2) {
+      setScreenLines(prev => [...prev, SCREEN_LINES[2], SCREEN_LINES[3]]);
+      spawnParticle('optimize()', 100, 20);
+      // Spawn extra coding particles during intro typing
+      const t1 = setTimeout(() => spawnParticle('conflict = 0', 160, -10), 1000);
+      const t2 = setTimeout(() => spawnParticle('return timetable', 120, 50), 2000);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    } else if (activeStep === 3) {
+      setScreenLines(prev => [...prev, SCREEN_LINES[4]]);
+      spawnParticle('Success ✓', 150, -40);
+    }
+  }, [activeStep]);
+
   return (
     <section className={styles.dev_section} id="team" ref={sectionRef}>
-      {/* Warm bg */}
+      {/* Warm background gradient */}
       <div className={styles.dev_bg} aria-hidden="true" />
 
       <div className={styles.dev_inner}>
 
-        {/* ══ LEFT: Animated Avatar ══ */}
+        {/* ══ LEFT: Avatar with laptop typing animations ══ */}
         <div className={styles.dev_avatar_col}>
 
           {/* Floating glass code tags */}
@@ -461,10 +466,11 @@ function DeveloperSection() {
               key={i}
               className={`${styles.dev_glass_tag} ${phase >= 1 ? styles.tag_visible : ''}`}
               style={{
-                top: t.top, left: t.left,
+                top: t.top,
+                left: t.left,
                 animationDelay: t.delay,
                 animationDuration: t.dur,
-                transitionDelay: `${0.3 + i * 0.1}s`,
+                transitionDelay: `${0.2 + i * 0.08}s`,
               }}
               aria-hidden="true"
             >
@@ -473,49 +479,38 @@ function DeveloperSection() {
             </span>
           ))}
 
-          {/* Avatar scene — same image, CSS animations layered on top */}
+          {/* Avatar scene container */}
           <div className={`${styles.avatar_scene} ${phase >= 1 ? styles.avatar_alive : ''}`}>
-
-            {/* The cartoon avatar — same src, breathing + float animations via CSS class */}
             <img
               src="/kinjal_avatar.png"
               alt="Kinjal Gupta — Developer of ScheduleFlow"
               className={`${styles.avatar_img} ${phase >= 1 ? styles.avatar_breathing : ''}`}
             />
 
-            {/* ── Eye blink overlay ── positioned over where the avatar eyes sit */}
-            <div className={`${styles.eye_blink_overlay} ${phase >= 1 ? styles.blink_active : ''}`} aria-hidden="true">
-              <span className={styles.eye_left}  />
-              <span className={styles.eye_right} />
-            </div>
-
-            {/* ── Finger tap overlay ── subtle pulse over the keyboard area ── */}
-            {phase >= 3 && (
-              <div className={styles.finger_tap_overlay} aria-hidden="true">
-                <span /><span /><span />
-              </div>
-            )}
-
-            {/* ── Laptop screen glow + code lines ── */}
-            <div className={`${styles.laptop_screen_wrap} ${phase >= 2 ? styles.screen_on : ''}`}>
-              {/* Glow halo behind screen */}
+            {/* Laptop screen glow overlay */}
+            <div className={`${styles.laptop_screen_wrap} ${phase >= 1 ? styles.screen_on : ''}`}>
               <div className={styles.screen_glow} />
-
-              {/* Typed code lines */}
               <div className={styles.laptop_screen}>
                 {screenLines.map((line, i) => (
                   <div key={i} className={styles.code_line}>
                     {line}
                   </div>
                 ))}
-                {phase >= 3 && screenLines.length < SCREEN_LINES.length && (
+                {activeStep >= 0 && activeStep < 4 && (
                   <span className={styles.cursor_blink}>▋</span>
                 )}
               </div>
             </div>
 
-            {/* ── Code particles flying from laptop toward right ── */}
-            {activeParticles.map(p => (
+            {/* Finger tap pulse indicators */}
+            {activeStep >= 0 && activeStep < 4 && (
+              <div className={styles.finger_tap_overlay} aria-hidden="true">
+                <span /><span /><span />
+              </div>
+            )}
+
+            {/* Flying code particles */}
+            {particles.map(p => (
               <span
                 key={p.id}
                 className={styles.code_particle}
@@ -527,72 +522,91 @@ function DeveloperSection() {
             ))}
           </div>
 
-          {/* Status pill */}
+          {/* Status badge pill */}
           <div className={`${styles.dev_badge_pill} ${phase >= 1 ? styles.badge_in : ''}`}>
             <span className={styles.dev_badge_status_dot} />
             <span>Kinjal Gupta · CS Student &amp; Developer</span>
           </div>
         </div>
 
-        {/* ══ RIGHT: Story card — text appears as if generated by laptop ══ */}
+        {/* ══ RIGHT: Developer story revealed continuously ══ */}
         <div className={styles.dev_content}>
 
           {/* Eyebrow */}
-          <div className={`${styles.dev_eyebrow} ${revealedItems.includes(0) ? styles.story_in : styles.story_hidden}`}>
-            Meet the Developer
+          <div className={styles.dev_eyebrow}>
+            {activeStep >= 0 ? (
+              <TypewriterWord
+                text="Meet the Developer"
+                active={activeStep === 0}
+                speed={25}
+                onComplete={() => setActiveStep(1)}
+              />
+            ) : null}
           </div>
 
-          {/* Heading with typewriter-style reveal */}
-          <h2 className={`${styles.dev_heading} ${revealedItems.includes(1) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0s' }}>
-            Hi, I'm Kinjal
+          {/* Main Heading */}
+          <h2 className={styles.dev_heading}>
+            {activeStep >= 1 ? (
+              <TypewriterWord
+                text="Hi, I'm Kinjal"
+                active={activeStep === 1}
+                speed={30}
+                onComplete={() => setActiveStep(2)}
+              />
+            ) : null}
           </h2>
 
-          {/* Intro paragraph */}
-          <p className={`${styles.dev_intro} ${revealedItems.includes(2) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0s' }}>
-            I am a Computer Science student and the developer behind ScheduleFlow.
-            I build software solutions that transform real-world problems into
-            impactful technology — turning hours of manual scheduling into
-            instant, conflict-free timetables.
+          {/* Introduction paragraph */}
+          <p className={styles.dev_intro}>
+            {activeStep >= 2 ? (
+              <TypewriterWord
+                text="I am a Computer Science student and the developer behind ScheduleFlow. I build software solutions that transform real-world problems into impactful technology — turning hours of manual scheduling into instant, conflict-free timetables."
+                active={activeStep === 2}
+                speed={15}
+                onComplete={() => setActiveStep(3)}
+              />
+            ) : null}
           </p>
 
-          {/* Mission */}
-          <div className={`${styles.dev_mission_card} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0s' }}>
+          {/* Mission Card */}
+          <div className={`${styles.dev_mission_card} ${activeStep >= 3 ? styles.story_in : styles.story_hidden}`}>
             <div className={styles.dev_mission_header}>My Mission</div>
             <p className={styles.dev_mission_quote}>
-              "My mission is to combine engineering, algorithms, and creativity
-              to build products that simplify everyday challenges and create
-              meaningful impact through technology."
+              {activeStep >= 3 ? (
+                <TypewriterWord
+                  text="My mission is to combine engineering, algorithms, and creativity to build products that simplify everyday challenges and create meaningful impact through technology."
+                  active={activeStep === 3}
+                  speed={15}
+                  onComplete={() => setActiveStep(4)}
+                />
+              ) : null}
             </p>
           </div>
 
-          {/* Technologies */}
-          <div className={`${styles.dev_tech_label} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0.15s' }}>
+          {/* Built-with stack labels */}
+          <div className={`${styles.dev_tech_label} ${activeStep >= 4 ? styles.story_in : styles.story_hidden}`}>
             Built with
           </div>
-          <div className={`${styles.dev_tags_row} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0.25s' }}>
+          <div className={`${styles.dev_tags_row} ${activeStep >= 4 ? styles.story_in : styles.story_hidden}`}>
             {['React', 'Spring Boot', 'PostgreSQL', 'Graph Algorithms'].map(t => (
               <span key={t} className={styles.dev_tag_chip}>{t}</span>
             ))}
           </div>
 
-          {/* Role chips */}
-          <div className={`${styles.dev_roles_row} ${revealedItems.includes(3) ? styles.story_in : styles.story_hidden}`}
-            style={{ transitionDelay: '0.4s' }}>
+          {/* Roles row */}
+          <div className={`${styles.dev_roles_row} ${activeStep >= 4 ? styles.story_in : styles.story_hidden}`}>
             {['Software Engineer', 'Full Stack Developer', 'Problem Solver'].map(r => (
               <span key={r} className={styles.dev_role_chip}>{r}</span>
             ))}
           </div>
+
         </div>
 
       </div>
     </section>
   );
 }
+
 
 
 

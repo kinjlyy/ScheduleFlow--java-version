@@ -965,11 +965,11 @@
 /* Laptop Screen wrap with glow */
 .laptop_screen_wrap {
   position: absolute;
-  bottom: 27.5%;
-  left: 50%;
-  width: 25.5%;
-  height: 12.5%;
-  transform: translate(-50%, 0) rotate(-4deg);
+  bottom: 38%;
+  left: 10.5%;
+  width: 29.5%;
+  height: 19.5%;
+  transform: rotate(5deg) skewY(-2deg);
   z-index: 3;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -1041,8 +1041,8 @@
 /* Code Particles flying out from the laptop */
 .code_particle {
   position: absolute;
-  bottom: 33%;
-  left: 50%;
+  bottom: 48%;
+  left: 25%;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.58rem;
   font-weight: 700;
