@@ -355,32 +355,186 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
-      {/* ── CTA Banner ── */}
-      <section className={styles.cta_banner}>
-        <h2 className={styles.cta_title}>Ready to eliminate scheduling chaos?</h2>
-        <p className={styles.cta_sub}>Join institutions already running conflict-free timetables with ScheduleFlow.</p>
-        <button className={styles.cta_btn} onClick={onGetStarted}>
-          Get Started for Free →
-        </button>
+      {/* ── CTA + Footer ── */}
+      <CtaFooter onGetStarted={onGetStarted} />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Separated component so it can manage its own
+   mouse-interaction state cleanly
+───────────────────────────────────────────── */
+function CtaFooter({ onGetStarted }) {
+  const sectionRef = useRef(null);
+  const [mouse, setMouse] = React.useState({ x: 0.5, y: 0.5 });
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const handleMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      setMouse({
+        x: (e.clientX - rect.left) / rect.width,
+        y: (e.clientY - rect.top)  / rect.height,
+      });
+    };
+    el.addEventListener('mousemove', handleMove);
+    return () => el.removeEventListener('mousemove', handleMove);
+  }, []);
+
+  const px = (mouse.x - 0.5) * 28;
+  const py = (mouse.y - 0.5) * 18;
+
+  const SUBJECTS = ['Mathematics', 'Physics', 'English', 'Chemistry', 'Biology', 'Computer Sc.'];
+  const COLORS   = ['#0ABFBC', '#c9956a', '#059669', '#6366f1', '#f59e0b', '#ec4899'];
+  const DAYS     = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const PERIODS  = ['9:00', '10:00', '11:00', '12:00', '2:00'];
+
+  // deterministic cell data
+  const cell = (r, c) => ({ subj: SUBJECTS[(r * 3 + c * 2) % SUBJECTS.length], color: COLORS[(r + c) % COLORS.length] });
+
+  return (
+    <>
+      {/* ── CTA Section ── */}
+      <section className={styles.cta_section} ref={sectionRef} id="contact">
+
+        {/* Animated grid background */}
+        <div className={styles.cta_grid_bg} aria-hidden="true">
+          {Array.from({ length: 120 }).map((_, i) => (
+            <div key={i} className={styles.cta_grid_cell} />
+          ))}
+        </div>
+
+        {/* Floating blobs reacting to mouse */}
+        <div
+          className={styles.blob1}
+          style={{ transform: `translate(${px * 0.6}px, ${py * 0.5}px)` }}
+          aria-hidden="true"
+        />
+        <div
+          className={styles.blob2}
+          style={{ transform: `translate(${-px * 0.4}px, ${-py * 0.3}px)` }}
+          aria-hidden="true"
+        />
+
+        <div className={styles.cta_inner}>
+          {/* Text */}
+          <div className={styles.cta_text}>
+            <div className={styles.cta_eyebrow}>Scheduling infrastructure for education</div>
+            <h2 className={styles.cta_heading}>
+              Ready to transform the way your<br />institution manages schedules?
+            </h2>
+            <p className={styles.cta_sub}>
+              From schools to universities, ScheduleFlow helps create optimized timetables
+              without hours of manual effort.
+            </p>
+            <div className={styles.cta_actions}>
+              <button className={styles.cta_btn_primary} onClick={onGetStarted}>
+                Start Building Your Timetable →
+              </button>
+              <a href="#how" className={styles.cta_btn_ghost}>
+                Explore How It Works
+              </a>
+            </div>
+          </div>
+
+          {/* Floating dashboard product preview */}
+          <div
+            className={styles.cta_preview}
+            style={{ transform: `translate(${px * 0.35}px, ${py * 0.25}px)` }}
+          >
+            {/* Analytics bar */}
+            <div className={styles.prev_stats}>
+              <div className={styles.prev_stat}>
+                <div className={styles.prev_stat_val}>24</div>
+                <div className={styles.prev_stat_lbl}>Sections</div>
+              </div>
+              <div className={styles.prev_stat}>
+                <div className={styles.prev_stat_val}>62</div>
+                <div className={styles.prev_stat_lbl}>Teachers</div>
+              </div>
+              <div className={styles.prev_stat_ok}>
+                <span className={styles.prev_ok_dot} />
+                0 Conflicts
+              </div>
+            </div>
+
+            {/* Timetable grid */}
+            <div className={styles.prev_grid}>
+              {/* header row */}
+              <div className={styles.prev_th} />
+              {DAYS.map(d => <div key={d} className={styles.prev_th}>{d}</div>)}
+
+              {/* data rows */}
+              {PERIODS.map((p, ri) => (
+                <React.Fragment key={p}>
+                  <div className={styles.prev_period}>{p}</div>
+                  {DAYS.map((_, ci) => {
+                    const c = cell(ri, ci);
+                    return (
+                      <div
+                        key={ci}
+                        className={styles.prev_cell}
+                        style={{
+                          borderLeftColor: c.color,
+                          animationDelay: `${(ri * 5 + ci) * 50}ms`,
+                        }}
+                      >
+                        <span className={styles.prev_cell_subj}>{c.subj}</span>
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Teacher allocation row */}
+            <div className={styles.prev_teachers}>
+              <span className={styles.prev_teachers_label}>Allocated —</span>
+              {['Mr. Sharma', 'Ms. Patel', 'Dr. Rao'].map(t => (
+                <span key={t} className={styles.prev_teacher_chip}>{t}</span>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className={styles.footer} id="contact">
-        <div className={styles.footer_top}>
-          <div>
+      <footer className={styles.footer} id="footer">
+        <div className={styles.footer_main}>
+          {/* Brand */}
+          <div className={styles.footer_brand}>
             <div className={styles.footer_logo}>ScheduleFlow</div>
-            <p className={styles.footer_tag}>Smart TimeTable Mapping · Effortless Event Management</p>
+            <p className={styles.footer_tagline}>
+              Smart scheduling infrastructure for schools,<br />colleges and universities.
+            </p>
           </div>
-          <div className={styles.footer_links}>
+
+          {/* Product links */}
+          <div className={styles.footer_col}>
+            <div className={styles.footer_col_title}>Product</div>
             <a href="#about" className={styles.footer_link}>Features</a>
-            <a href="#how" className={styles.footer_link}>How it Works</a>
-            <a href="#team" className={styles.footer_link}>Team</a>
+            <a href="#how"   className={styles.footer_link}>How it Works</a>
+            <a href="#team"  className={styles.footer_link}>Team</a>
+          </div>
+
+          {/* Connect links */}
+          <div className={styles.footer_col}>
+            <div className={styles.footer_col_title}>Connect</div>
+            <a href="https://github.com/kinjlyy/ScheduleFlow--java-version" target="_blank" rel="noreferrer" className={styles.footer_link}>GitHub</a>
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" className={styles.footer_link}>LinkedIn</a>
+            <a href="mailto:contact@scheduleflow.in" className={styles.footer_link}>Contact</a>
           </div>
         </div>
+
         <div className={styles.footer_bottom}>
+          <p className={styles.footer_built}>
+            Built with passion by a developer solving real academic scheduling problems.
+          </p>
           <p className={styles.footer_copy}>© 2025 ScheduleFlow. All rights reserved.</p>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
