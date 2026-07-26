@@ -57,6 +57,188 @@
 
 .sub_hint { font-size: 0.85rem; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 
+/* Strategy Selector */
+.strategy_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.strategy_card {
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.strategy_card:hover {
+  border-color: var(--teal-mid);
+}
+.strategy_active {
+  border-color: var(--teal) !important;
+  background: var(--teal-light) !important;
+}
+.strategy_title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.strategy_desc {
+  font-size: 0.8rem;
+  color: var(--text2);
+  line-height: 1.4;
+}
+.strategy_badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--muted);
+  width: fit-content;
+  margin-top: 4px;
+}
+
+/* Room Opt-in Switch */
+.toggle_box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.toggle_label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.btn_group {
+  display: flex;
+  gap: 8px;
+}
+
+/* Dashboard Summary Cards */
+.dash_grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+@media (max-width: 600px) {
+  .dash_grid { grid-template-columns: repeat(2, 1fr); }
+}
+.dash_card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash_val {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--teal);
+}
+.dash_lbl {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Room Form */
+.room_form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form_row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.checkbox_group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.checkbox_item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Room Table */
+.room_table_wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+.room_table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.room_table th, .room_table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.room_table th {
+  background: var(--bg2);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.status_pill_active {
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.status_pill_inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.feature_badge {
+  display: inline-block;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
 /* Teacher rows */
 .teacher_rows { display: flex; flex-direction: column; gap: 10px; }
 .teacher_row {
@@ -107,4 +289,3 @@
   color: var(--muted);
 }
 .no_teachers_icon { font-size: 1.4rem; }
-

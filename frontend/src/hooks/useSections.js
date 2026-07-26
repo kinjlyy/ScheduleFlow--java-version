@@ -4,13 +4,23 @@ import { useState, useCallback } from 'react';
 let _idCounter = 0;
 const nextId = () => `sec_${++_idCounter}`;
 
+const DEFAULT_MAPPING = () => ({
+  teacher: '',
+  lecturesPerWeek: 4,
+  lectureType: 'THEORY',
+  projectorRequired: false,
+  preferredRoomType: 'ANY',
+  movable: true,
+});
+
 const EMPTY_SECTION = () => ({
   id: nextId(),
   name: '',
   capacity: '',
+  fixedRoomId: null,
   subjects: [],
   teachers: [],
-  // mapping: { [subject]: { teacher: '', lecturesPerWeek: 4 } }
+  // mapping: { [subject]: { teacher: '', lecturesPerWeek: 4, lectureType: 'THEORY', ... } }
   mapping: {},
 });
 
@@ -25,15 +35,14 @@ export function useSections() {
     setSections(prev => {
       const source = prev.find(s => s.id === sourceId);
       if (!source) return prev;
-      
+
       const copy = {
         ...source,
         id: nextId(),
         name: source.name ? `${source.name} (Copy)` : '',
-        // Deep copy mapping to ensure mutations don't affect parent
-        mapping: JSON.parse(JSON.stringify(source.mapping))
+        mapping: JSON.parse(JSON.stringify(source.mapping)),
       };
-      
+
       return [...prev, copy];
     });
   }, []);
@@ -56,7 +65,7 @@ export function useSections() {
       return {
         ...s,
         subjects: [...s.subjects, name],
-        mapping: { ...s.mapping, [name]: { teacher: '', lecturesPerWeek: 4 } },
+        mapping: { ...s.mapping, [name]: DEFAULT_MAPPING() },
       };
     }));
   }, []);
@@ -83,7 +92,6 @@ export function useSections() {
   const removeTeacher = useCallback((id, teacher) => {
     setSections(prev => prev.map(s => {
       if (s.id !== id) return s;
-      // Clear this teacher from any mappings
       const mapping = { ...s.mapping };
       Object.keys(mapping).forEach(subj => {
         if (mapping[subj].teacher === teacher) mapping[subj] = { ...mapping[subj], teacher: '' };
@@ -96,11 +104,12 @@ export function useSections() {
   const updateMapping = useCallback((sectionId, subject, field, value) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
+      const current = s.mapping[subject] || DEFAULT_MAPPING();
       return {
         ...s,
         mapping: {
           ...s.mapping,
-          [subject]: { ...s.mapping[subject], [field]: value },
+          [subject]: { ...current, [field]: value },
         },
       };
     }));
@@ -113,17 +122,26 @@ export function useSections() {
         id: s.id,
         name: s.name || s.id,
         capacity: Number(s.capacity) || 0,
+        fixedRoomId: s.fixedRoomId ? Number(s.fixedRoomId) : null,
         subjects: s.subjects,
         teachers: s.teachers,
-        mappings: s.subjects.map(subj => ({
-          subject: subj,
-          teacher: s.mapping[subj]?.teacher || '',
-          lecturesPerWeek: Number(s.mapping[subj]?.lecturesPerWeek) || 4,
-        })),
+        mappings: s.subjects.map(subj => {
+          const m = s.mapping[subj] || DEFAULT_MAPPING();
+          return {
+            subject: subj,
+            teacher: m.teacher || '',
+            lecturesPerWeek: Number(m.lecturesPerWeek) || 4,
+            lectureType: m.lectureType || 'THEORY',
+            projectorRequired: Boolean(m.projectorRequired),
+            preferredRoomType: m.preferredRoomType || 'ANY',
+            movable: m.movable !== undefined ? Boolean(m.movable) : true,
+          };
+        }),
       })),
       daysPerWeek: constraints.daysPerWeek,
       periodsPerDay: constraints.periodsPerDay,
       teacherMaxLectures: constraints.teacherMaxLectures,
+      roomAllocationStrategy: constraints.roomAllocationStrategy || 'DYNAMIC_ALLOCATION',
     };
   }, [sections]);
 

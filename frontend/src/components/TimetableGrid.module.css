@@ -78,6 +78,17 @@
   font-size: 0.75rem;
   color: var(--muted);
 }
+.cell_room {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: var(--teal-dark);
+  background: var(--teal-light);
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: 0.02em;
+}
 
 .row_even .day_cell,
 .row_even .period_cell,

@@ -3,6 +3,13 @@ package com.scheduleflow.service;
 import com.scheduleflow.dto.*;
 import com.scheduleflow.dto.TimetableResponseDTO.PeriodCell;
 import com.scheduleflow.dto.TimetableResponseDTO.TimetableStats;
+import com.scheduleflow.model.LectureType;
+import com.scheduleflow.model.PreferredRoomType;
+import com.scheduleflow.model.Room;
+import com.scheduleflow.model.RoomAllocationStrategy;
+import com.scheduleflow.model.RoomType;
+import com.scheduleflow.scheduler.RoomProvider;
+import com.scheduleflow.util.TimetableConstants;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -27,9 +34,14 @@ import java.util.*;
 @Service
 public class SchedulerService {
 
-    private static final String[] DAYS = {
-        "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"
-    };
+    // Day names referenced from TimetableConstants to avoid duplication
+    private static final String[] DAYS = TimetableConstants.DAYS;
+
+    private final RoomProvider roomProvider;
+
+    public SchedulerService(RoomProvider roomProvider) {
+        this.roomProvider = roomProvider;
+    }
 
     // ── Public entry point ────────────────────────────────────────────────────
 
@@ -55,9 +67,10 @@ public class SchedulerService {
         // STEP 3.5 – Compaction: Slide lectures to earlier slots to fix gaps
         compactTimetable(nodes, days, periods);
 
-        // STEP 4 – fill result grid
+        // STEP 4 – fill result grid (with strict room allocation)
         Map<String, Map<String, List<PeriodCell>>> timetable =
-                buildGrid(request.getSections(), nodes, days, periods);
+                buildGrid(request.getSections(), nodes, days, periods,
+                          request.getRoomAllocationStrategy(), warnings);
 
         // STEP 5 – stats
         TimetableStats stats = computeStats(
@@ -108,8 +121,14 @@ public class SchedulerService {
                 int toAdd = Math.min(requested, maxPerSection - placed);
                 for (int i = 0; i < toAdd; i++) {
                     // lectureIndex within this subject (0-based) used for day-spread ordering
-                    nodes.add(new LectureNode(
-                            sec.getId(), sec.getName(), m.getSubject(), teacher, i));
+                    LectureNode ln = new LectureNode(
+                            sec.getId(), sec.getName(), m.getSubject(), teacher, i);
+                    ln.fixedRoomId       = sec.getFixedRoomId();
+                    ln.sectionCapacity   = sec.getCapacity();
+                    ln.lectureType       = m.getLectureType();
+                    ln.projectorRequired = m.isProjectorRequired();
+                    ln.preferredRoomType = m.getPreferredRoomType();
+                    nodes.add(ln);
                 }
                 teacherRequested.merge(teacher, toAdd, Integer::sum);
                 placed += toAdd;
@@ -357,11 +376,26 @@ public class SchedulerService {
         }
     }
 
-    // ── STEP 4: build result grid ─────────────────────────────────────────────
+    // ── STEP 4: build result grid (with strict room allocation) ───────────────
 
     private Map<String, Map<String, List<PeriodCell>>> buildGrid(
-            List<SectionDTO> sections, List<LectureNode> nodes, int days, int periods) {
+            List<SectionDTO> sections, List<LectureNode> nodes,
+            int days, int periods, RoomAllocationStrategy strategy,
+            List<String> warnings) {
 
+        // Load all active rooms once via the RoomProvider abstraction.
+        // LocalRoomProvider delegates to RoomRepository.
+        // Future: ResourceServiceRoomProvider will call OpenFeign instead.
+        List<Room> allRooms = roomProvider.findAllActiveRooms();
+
+        // Build fixedRoom lookup: roomId -> Room
+        Map<Long, Room> roomById = new HashMap<>();
+        for (Room r : allRooms) roomById.put(r.getId(), r);
+
+        // Track room occupancy per (day, period) slot: slot -> set of roomIds already in use
+        Map<Integer, Set<Long>> slotRoomUsage = new HashMap<>();
+
+        // Initialise result grid
         Map<String, Map<String, List<PeriodCell>>> result = new LinkedHashMap<>();
         for (SectionDTO sec : sections) {
             Map<String, List<PeriodCell>> secGrid = new LinkedHashMap<>();
@@ -372,13 +406,96 @@ public class SchedulerService {
             result.put(sec.getId(), secGrid);
         }
 
-        for (LectureNode node : nodes) {
-            if (node.assignedSlot < 0) continue;
+        // Sort nodes by slot so earlier slots get rooms first
+        List<LectureNode> sorted = nodes.stream()
+                .filter(n -> n.assignedSlot >= 0)
+                .sorted(Comparator.comparingInt(n -> n.assignedSlot))
+                .toList();
+
+        for (LectureNode node : sorted) {
             Map<String, List<PeriodCell>> secGrid = result.get(node.sectionId);
             if (secGrid == null) continue;
             List<PeriodCell> row = secGrid.get(DAYS[node.assignedDay]);
-            if (row != null && node.assignedPeriod < row.size())
-                row.set(node.assignedPeriod, new PeriodCell(node.subject, node.teacher));
+            if (row == null || node.assignedPeriod >= row.size()) continue;
+
+            // ── Room allocation ──────────────────────────────────────────────
+            Room allocatedRoom = null;
+
+            boolean isLabLecture = node.lectureType == LectureType.LAB
+                    || node.preferredRoomType == PreferredRoomType.LABORATORY;
+
+            Room fixedRoom = node.fixedRoomId != null ? roomById.get(node.fixedRoomId) : null;
+            boolean fixedRoomIsLab = fixedRoom != null && fixedRoom.getRoomType() == RoomType.LABORATORY;
+
+            boolean canUseFixed = (strategy == RoomAllocationStrategy.FIXED_CLASSROOM
+                    || strategy == RoomAllocationStrategy.HYBRID)
+                    && fixedRoom != null
+                    && (!isLabLecture && !fixedRoomIsLab); // Theory gets fixed room if fixed room is non-lab
+
+            if (canUseFixed) {
+                // Fixed classroom for theory
+                allocatedRoom = fixedRoom;
+            } else if (strategy == RoomAllocationStrategy.DYNAMIC_ALLOCATION
+                    || strategy == RoomAllocationStrategy.HYBRID
+                    || (strategy == RoomAllocationStrategy.FIXED_CLASSROOM && (isLabLecture || fixedRoomIsLab))) {
+
+                // Dynamic allocation for labs, or theory when no valid fixed classroom
+                Set<Long> usedRooms = slotRoomUsage.getOrDefault(node.assignedSlot, Collections.emptySet());
+
+                // Pass 1 — Ideal: Strict room type + projector + capacity
+                allocatedRoom = allRooms.stream()
+                        .filter(r -> !usedRooms.contains(r.getId()))
+                        .filter(r -> matchesPreferredType(r, node.preferredRoomType, node.lectureType))
+                        .filter(r -> r.getMaximumCapacity() >= node.sectionCapacity)
+                        .filter(r -> !node.projectorRequired || r.isHasProjector())
+                        .findFirst()
+                        .orElse(null);
+
+                // Pass 2 — Relax projector requirement, but STRICTLY ENFORCE room type + capacity
+                if (allocatedRoom == null) {
+                    allocatedRoom = allRooms.stream()
+                            .filter(r -> !usedRooms.contains(r.getId()))
+                            .filter(r -> matchesPreferredType(r, node.preferredRoomType, node.lectureType))
+                            .filter(r -> r.getMaximumCapacity() >= node.sectionCapacity)
+                            .findFirst()
+                            .orElse(null);
+                }
+
+                // Pass 3 — Relax capacity check, but STRICTLY ENFORCE room type rule
+                if (allocatedRoom == null) {
+                    allocatedRoom = allRooms.stream()
+                            .filter(r -> !usedRooms.contains(r.getId()))
+                            .filter(r -> matchesPreferredType(r, node.preferredRoomType, node.lectureType))
+                            .findFirst()
+                            .orElse(null);
+                }
+
+                // NO Pass 4 fallback! If no room matching matchesPreferredType exists, allocatedRoom remains null.
+            }
+
+            if (allocatedRoom != null) {
+                slotRoomUsage.computeIfAbsent(node.assignedSlot, k -> new HashSet<>())
+                        .add(allocatedRoom.getId());
+            } else {
+                // Log warning when strict room allocation failed
+                String dayName = DAYS[node.assignedDay];
+                int periodNum = node.assignedPeriod + 1;
+                if (isLabLecture) {
+                    warnings.add(String.format(
+                        "No laboratory available for subject '%s' (Section '%s') on %s Period %d.",
+                        node.subject, node.sectionName, dayName, periodNum));
+                } else {
+                    warnings.add(String.format(
+                        "No classroom available for subject '%s' (Section '%s') on %s Period %d.",
+                        node.subject, node.sectionName, dayName, periodNum));
+                }
+            }
+
+            PeriodCell cell = allocatedRoom != null
+                    ? new PeriodCell(node.subject, node.teacher,
+                                     allocatedRoom.getId(), allocatedRoom.getRoomNumber())
+                    : new PeriodCell(node.subject, node.teacher);
+            row.set(node.assignedPeriod, cell);
         }
 
         // Fill gaps with FREE
@@ -388,6 +505,38 @@ public class SchedulerService {
         }));
 
         return result;
+    }
+
+    /**
+     * STRICT room type constraint checker.
+     *
+     * Rules:
+     *   1. LAB lectures MUST ONLY be scheduled inside LABORATORY rooms.
+     *   2. THEORY lectures MUST NEVER be scheduled inside LABORATORY rooms.
+     *   3. Explicit preferredRoomType takes highest precedence if provided.
+     */
+    private boolean matchesPreferredType(Room room, PreferredRoomType preferred, LectureType lectureType) {
+        if (room == null) return false;
+        RoomType rt = room.getRoomType();
+        if (rt == null) return false;
+
+        // Explicit preference — honour strictly
+        if (preferred != null && preferred != PreferredRoomType.ANY) {
+            return switch (preferred) {
+                case CLASSROOM    -> rt == RoomType.CLASSROOM;
+                case LABORATORY   -> rt == RoomType.LABORATORY;
+                case SEMINAR_HALL -> rt == RoomType.SEMINAR_HALL;
+                case AUDITORIUM   -> rt == RoomType.AUDITORIUM;
+                default           -> false;
+            };
+        }
+
+        // Auto-derive from lectureType when preferred == ANY or null
+        if (lectureType == LectureType.LAB) {
+            return rt == RoomType.LABORATORY;
+        } else {
+            return rt == RoomType.CLASSROOM || rt == RoomType.SEMINAR_HALL || rt == RoomType.AUDITORIUM;
+        }
     }
 
     // ── STEP 5: statistics ────────────────────────────────────────────────────
@@ -422,6 +571,13 @@ public class SchedulerService {
         int    lectureIndex; // 0-based index within this subject (drives day-spread)
         Set<Integer> neighbors = new HashSet<>();
         int assignedSlot = -1, assignedDay = -1, assignedPeriod = -1;
+
+        // Room allocation metadata
+        Long              fixedRoomId       = null;
+        int               sectionCapacity   = 0;
+        LectureType       lectureType       = LectureType.THEORY;
+        boolean           projectorRequired = false;
+        PreferredRoomType preferredRoomType = PreferredRoomType.ANY;
 
         LectureNode(String sectionId, String sectionName,
                     String subject, String teacher, int lectureIndex) {

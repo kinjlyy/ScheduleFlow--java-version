@@ -7,6 +7,9 @@ export function useConstraints() {
   // teacher -> max lectures/week (defaults to maxPerSection when teacher first added)
   const [teacherMaxLectures, setTeacherMaxLectures] = useState({});
 
+  // Room allocation strategy: 'DYNAMIC_ALLOCATION' | 'FIXED_CLASSROOM' | 'HYBRID'
+  const [roomAllocationStrategy, setRoomAllocationStrategy] = useState('DYNAMIC_ALLOCATION');
+
   const maxPerSection = daysPerWeek * periodsPerDay;
 
   // When days/periods change, update teacher maxes but PRESERVE custom overrides
@@ -76,8 +79,15 @@ export function useConstraints() {
     periodsPerDay, setPeriodsPerDay,
     teacherMaxLectures,
     setTeacherMax,
+    roomAllocationStrategy,
+    setRoomAllocationStrategy,
     syncTeachers,
     maxPerSection,
-    toConstraints: () => ({ daysPerWeek, periodsPerDay, teacherMaxLectures }),
+    toConstraints: () => ({
+      daysPerWeek,
+      periodsPerDay,
+      teacherMaxLectures,
+      roomAllocationStrategy,
+    }),
   };
 }

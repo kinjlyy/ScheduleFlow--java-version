@@ -1,5 +1,7 @@
 package com.scheduleflow.dto;
 
+import com.scheduleflow.model.RoomAllocationStrategy;
+
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +10,7 @@ public class TimetableRequestDTO {
     private int daysPerWeek;
     private int periodsPerDay;
     private Map<String, Integer> teacherMaxLectures; // teacher -> max lectures/week
+    private RoomAllocationStrategy roomAllocationStrategy = RoomAllocationStrategy.DYNAMIC_ALLOCATION;
 
     public TimetableRequestDTO() {}
 
@@ -22,4 +25,7 @@ public class TimetableRequestDTO {
 
     public Map<String, Integer> getTeacherMaxLectures() { return teacherMaxLectures; }
     public void setTeacherMaxLectures(Map<String, Integer> teacherMaxLectures) { this.teacherMaxLectures = teacherMaxLectures; }
+
+    public RoomAllocationStrategy getRoomAllocationStrategy() { return roomAllocationStrategy; }
+    public void setRoomAllocationStrategy(RoomAllocationStrategy roomAllocationStrategy) { this.roomAllocationStrategy = roomAllocationStrategy; }
 }

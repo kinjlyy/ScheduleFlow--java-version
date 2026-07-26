@@ -7,6 +7,7 @@ import styles from './SetupPage.module.css';
 
 export default function SetupPage({
   sections,
+  rooms = [],
   onAddSection,
   onCopySection,
   onRemoveSection,
@@ -63,7 +64,7 @@ export default function SetupPage({
         <div>
           <h2 className={styles.page_title}>Setup Sections</h2>
           <p className={styles.page_sub}>
-            Add subjects, teachers, and lecture counts for each section.
+            Add subjects, teachers, fixed rooms, and lecture details for each section.
             All values are checked against your constraints in real-time.
           </p>
         </div>
@@ -112,6 +113,7 @@ export default function SetupPage({
           <SectionPanel
             key={sec.id}
             section={sec}
+            rooms={rooms}
             onUpdateSection={onUpdateSection}
             onAddSubject={onAddSubject}
             onRemoveSubject={onRemoveSubject}
@@ -134,7 +136,7 @@ export default function SetupPage({
           {sections.length > 0 && (
             <div className={styles.copy_wrap}>
               <span className={styles.copy_label}>Or copy from:</span>
-              <select 
+              <select
                 className={styles.copy_select}
                 onChange={(e) => {
                   if (e.target.value) {
@@ -165,4 +167,3 @@ export default function SetupPage({
     </div>
   );
 }
-

@@ -12,6 +12,7 @@ import ResultPage    from './pages/ResultPage.jsx';
 import { useSections }    from './hooks/useSections.js';
 import { useConstraints } from './hooks/useConstraints.js';
 import { generateTimetable } from './api/timetableApi.js';
+import { fetchRooms, fetchRoomSummary, createRoom, updateRoom, deleteRoom } from './api/roomApi.js';
 import styles from './App.module.css';
 
 // Step order inside the timetable builder — constraints first
@@ -23,6 +24,11 @@ export default function App() {
   const [appView, setAppView]   = useState(() => localStorage.getItem('token') ? 'dashboard' : 'landing');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
   const [token, setToken]       = useState(() => localStorage.getItem('token') || '');
+
+  // ── Room Management State ────────────────────────────────────────────────
+  const [manageRooms, setManageRooms] = useState(false);
+  const [rooms, setRooms]             = useState([]);
+  const [roomSummary, setRoomSummary] = useState(null);
 
   // ── Builder step ────────────────────────────────────────────────────────
   const [activePage, setActivePage] = useState('constraints');
@@ -40,8 +46,59 @@ export default function App() {
     daysPerWeek, setDaysPerWeek,
     periodsPerDay, setPeriodsPerDay,
     teacherMaxLectures, setTeacherMax,
+    roomAllocationStrategy, setRoomAllocationStrategy,
     syncTeachers, maxPerSection, toConstraints,
   } = useConstraints();
+
+  // ── Load rooms from API ──────────────────────────────────────────────────
+  const loadRoomsData = useCallback(async () => {
+    try {
+      const [roomsList, summary] = await Promise.all([
+        fetchRooms(token),
+        fetchRoomSummary(token),
+      ]);
+      setRooms(roomsList);
+      setRoomSummary(summary);
+    } catch (err) {
+      console.warn('Backend rooms API unavailable, operating with local state:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadRoomsData();
+  }, [loadRoomsData]);
+
+  const handleAddRoom = async (roomData) => {
+    try {
+      const created = await createRoom(roomData, token);
+      setRooms(prev => [...prev, created]);
+      loadRoomsData();
+    } catch (err) {
+      // Local fallback if backend fails
+      const fallbackRoom = { ...roomData, id: Date.now() };
+      setRooms(prev => [...prev, fallbackRoom]);
+    }
+  };
+
+  const handleUpdateRoom = async (id, roomData) => {
+    try {
+      const updated = await updateRoom(id, roomData, token);
+      setRooms(prev => prev.map(r => r.id === id ? updated : r));
+      loadRoomsData();
+    } catch (err) {
+      setRooms(prev => prev.map(r => r.id === id ? { ...roomData, id } : r));
+    }
+  };
+
+  const handleDeleteRoom = async (id) => {
+    try {
+      await deleteRoom(id, token);
+      setRooms(prev => prev.filter(r => r.id !== id));
+      loadRoomsData();
+    } catch (err) {
+      setRooms(prev => prev.filter(r => r.id !== id));
+    }
+  };
 
   useEffect(() => {
     const all = [...new Set(sections.flatMap(s => s.teachers))];
@@ -186,12 +243,20 @@ export default function App() {
               maxPerSection={maxPerSection}
               teacherMaxLectures={teacherMaxLectures} setTeacherMax={setTeacherMax}
               allTeachers={allTeachers}
+              roomAllocationStrategy={roomAllocationStrategy} setRoomAllocationStrategy={setRoomAllocationStrategy}
+              manageRooms={manageRooms} setManageRooms={setManageRooms}
+              rooms={rooms}
+              roomSummary={roomSummary}
+              onAddRoom={handleAddRoom}
+              onUpdateRoom={handleUpdateRoom}
+              onDeleteRoom={handleDeleteRoom}
               onNext={goNext}
             />
           )}
           {activePage === 'setup' && (
             <SetupPage
               sections={sections}
+              rooms={rooms}
               onAddSection={addSection}
               onCopySection={duplicateSection}
               onRemoveSection={removeSection}
@@ -212,8 +277,12 @@ export default function App() {
           )}
           {activePage === 'review' && (
             <ReviewPage
-              sections={sections} validation={validation}
+              sections={sections}
+              rooms={rooms}
+              roomAllocationStrategy={roomAllocationStrategy}
+              validation={validation}
               onNext={goNext} onPrev={goPrev}
+              maxPerSection={maxPerSection}
             />
           )}
           {activePage === 'result' && (

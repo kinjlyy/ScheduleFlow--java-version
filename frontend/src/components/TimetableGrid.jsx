@@ -39,6 +39,9 @@ export default function TimetableGrid({ timetable, sectionId, periodsPerDay, day
                         <>
                           <div className={styles.cell_subj}>{cell.subject}</div>
                           <div className={styles.cell_teacher}>{cell.teacher}</div>
+                          {cell.roomNumber && (
+                            <div className={styles.cell_room}>🏫 {cell.roomNumber}</div>
+                          )}
                         </>
                       )}
                     </td>

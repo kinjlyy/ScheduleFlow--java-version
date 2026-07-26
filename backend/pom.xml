@@ -12,13 +12,14 @@
     </parent>
 
     <groupId>com.scheduleflow</groupId>
-    <artifactId>scheduleflow-backend</artifactId>
+    <artifactId>scheduleflow-timetable-service</artifactId>
     <version>1.0.0</version>
-    <name>ScheduleFlow Backend</name>
-    <description>Smart Timetable Scheduler Backend with Graph Coloring Algorithm</description>
+    <name>ScheduleFlow Timetable Service</name>
+    <description>Timetable Microservice: Graph Coloring Scheduler, Versioning, Lecture History, Room Allocation</description>
 
     <properties>
         <java.version>21</java.version>
+        <spring-cloud.version>2023.0.0</spring-cloud.version>
     </properties>
 
     <dependencies>
@@ -64,12 +65,42 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- Spring Boot Actuator: health, info, readiness endpoints -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Spring Cloud Eureka Client -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud OpenFeign for Inter-Service Communication -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>

@@ -9,6 +9,7 @@ public class TimetableResponseDTO {
     private Map<String, Map<String, List<PeriodCell>>> timetable;
     private List<String> warnings;
     private TimetableStats stats;
+    private Long timetableId;
 
     public TimetableResponseDTO() {}
 
@@ -21,11 +22,16 @@ public class TimetableResponseDTO {
     public TimetableStats getStats() { return stats; }
     public void setStats(TimetableStats stats) { this.stats = stats; }
 
+    public Long getTimetableId() { return timetableId; }
+    public void setTimetableId(Long timetableId) { this.timetableId = timetableId; }
+
     // ---- Inner classes ----
 
     public static class PeriodCell {
         private String subject;
         private String teacher;
+        private Long roomId;
+        private String roomNumber;
         private boolean free;
 
         public PeriodCell() {}
@@ -33,6 +39,14 @@ public class TimetableResponseDTO {
         public PeriodCell(String subject, String teacher) {
             this.subject = subject;
             this.teacher = teacher;
+            this.free = false;
+        }
+
+        public PeriodCell(String subject, String teacher, Long roomId, String roomNumber) {
+            this.subject = subject;
+            this.teacher = teacher;
+            this.roomId = roomId;
+            this.roomNumber = roomNumber;
             this.free = false;
         }
 
@@ -49,6 +63,12 @@ public class TimetableResponseDTO {
 
         public String getTeacher() { return teacher; }
         public void setTeacher(String teacher) { this.teacher = teacher; }
+
+        public Long getRoomId() { return roomId; }
+        public void setRoomId(Long roomId) { this.roomId = roomId; }
+
+        public String getRoomNumber() { return roomNumber; }
+        public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
         public boolean isFree() { return free; }
         public void setFree(boolean free) { this.free = free; }

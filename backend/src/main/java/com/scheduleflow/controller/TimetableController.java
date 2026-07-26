@@ -1,34 +1,39 @@
 package com.scheduleflow.controller;
 
-import com.scheduleflow.dto.TimetableRequestDTO;
-import com.scheduleflow.dto.TimetableResponseDTO;
-import com.scheduleflow.service.SchedulerService;
+import com.scheduleflow.dto.TimetableDTO;
+import com.scheduleflow.service.TimetableService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
+/**
+ * Controller dedicated to Timetable Versioning and History Management.
+ *
+ * Exposes endpoints for querying all timetables, current active timetable, and specific timetable details.
+ */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/timetables")
 public class TimetableController {
 
-    private final SchedulerService schedulerService;
+    private final TimetableService timetableService;
 
-    public TimetableController(SchedulerService schedulerService) {
-        this.schedulerService = schedulerService;
+    public TimetableController(TimetableService timetableService) {
+        this.timetableService = timetableService;
     }
 
-    /**
-     * POST /api/generate
-     * Accepts sections, constraints, and generates a clash-free timetable.
-     */
-    @PostMapping("/generate")
-    public ResponseEntity<TimetableResponseDTO> generateTimetable(
-            @RequestBody TimetableRequestDTO request) {
-        TimetableResponseDTO response = schedulerService.generate(request);
-        return ResponseEntity.ok(response);
+    @GetMapping
+    public ResponseEntity<List<TimetableDTO>> getAllTimetables() {
+        return ResponseEntity.ok(timetableService.getAllTimetables());
     }
 
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("ScheduleFlow API is running");
+    @GetMapping("/active")
+    public ResponseEntity<TimetableDTO> getActiveTimetable() {
+        return ResponseEntity.ok(timetableService.getActiveTimetable());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TimetableDTO> getTimetableById(@PathVariable Long id) {
+        return ResponseEntity.ok(timetableService.getTimetableById(id));
     }
 }

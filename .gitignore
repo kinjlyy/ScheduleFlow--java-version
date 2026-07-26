@@ -1,8 +1,28 @@
+# Build outputs
+target/
+**/target/
 node_modules/
 dist/
-.DS_Store
+build/
+
+# Logs
+*.log
+**/hs_err_pid*.log
+**/replay_pid*.log
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# IDE and OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.settings/
+.project
+.classpath
+.vscode/

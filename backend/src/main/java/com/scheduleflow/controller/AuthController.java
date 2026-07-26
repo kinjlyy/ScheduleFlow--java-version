@@ -6,7 +6,7 @@ import com.scheduleflow.dto.RegisterRequest;
 import com.scheduleflow.model.User;
 import com.scheduleflow.repository.UserRepository;
 import com.scheduleflow.security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,24 +15,40 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Authentication endpoints for the Timetable Service.
+ *
+ * <p><strong>Service Boundary Note:</strong> Authentication (User entity, JWT) is temporarily
+ * hosted in this service. In a future phase, this will be extracted into a dedicated Auth Service.
+ * At that point, this controller will be removed and token validation will happen at the API Gateway.
+ *
+ * <p>Endpoints:
+ * <ul>
+ *   <li>POST /api/auth/register — create a new account</li>
+ *   <li>POST /api/auth/login    — obtain a JWT token</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AuthController(AuthenticationManager authenticationManager,
+                          JwtUtil jwtUtil,
+                          UserRepository userRepository,
+                          PasswordEncoder passwordEncoder) {
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }

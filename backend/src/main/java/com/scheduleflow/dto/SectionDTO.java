@@ -1,12 +1,12 @@
 package com.scheduleflow.dto;
 
 import java.util.List;
-import java.util.Map;
 
 public class SectionDTO {
     private String id;
     private String name;
     private int capacity;
+    private Long fixedRoomId;
     private List<String> subjects;
     private List<String> teachers;
     private List<SubjectMappingDTO> mappings;
@@ -21,6 +21,9 @@ public class SectionDTO {
 
     public int getCapacity() { return capacity; }
     public void setCapacity(int capacity) { this.capacity = capacity; }
+
+    public Long getFixedRoomId() { return fixedRoomId; }
+    public void setFixedRoomId(Long fixedRoomId) { this.fixedRoomId = fixedRoomId; }
 
     public List<String> getSubjects() { return subjects; }
     public void setSubjects(List<String> subjects) { this.subjects = subjects; }

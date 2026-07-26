@@ -46,7 +46,8 @@
 }
 
 .row2 { display: flex; gap: 16px; }
-.field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.row3 { display: flex; gap: 16px; flex-wrap: wrap; }
+.field { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 5px; }
 
 .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; min-height: 20px; }
 
@@ -156,4 +157,3 @@
 }
 .no_teacher_hint { color: var(--muted); font-size: 0.82rem; }
 .teacher_tag_wrap { display: inline-flex; }
-
