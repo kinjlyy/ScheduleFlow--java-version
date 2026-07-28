@@ -4,30 +4,66 @@
 
 `scheduleflow-timetable-service` is an independently deployable, production-ready Spring Boot microservice responsible for timetable generation, versioning, lecture persistence, and timetable queries.
 
-In Phase 1 of the microservice migration, the application was decoupled from direct infrastructure dependencies via dependency inversion patterns, while preserving 100% of the existing graph-coloring scheduling engine and business logic.
+Following Phase 6 of the microservice migration, legacy local Room infrastructure (JPA entity, repository, service, controller) has been completely removed. `TIMETABLE-SERVICE` communicates with `RESOURCE-SERVICE` via declarative OpenFeign inter-service calls for active room data, while preserving 100% of the existing graph-coloring scheduling engine and business logic.
 
 ---
 
-## 2. Service Boundary & Owned Domain
+## 2. Final Domain Ownership
 
-The Timetable Service strictly owns the following domain entities and capabilities:
+The microservice architecture strictly demarcates domain ownership between services:
 
-| Domain Area | Description |
-|---|---|
-| **Timetable** | Timetable metadata, status (GENERATING, ACTIVE, ARCHIVED), semester, academic year |
-| **Lecture** | Scheduled lecture entries (subject, section, teacher, room, day, slot, lecture type) |
-| **Scheduler Engine** | DSatur graph-coloring algorithm, day-spread slot ordering, multi-day P1 compaction |
-| **Versioning & History** | Atomic transactional generation with automatic archive-on-success semantics |
-| **Teacher Timetable** | Queries for teacher-specific schedules |
-| **Section Timetable** | Queries for section-specific schedules |
+### RESOURCE-SERVICE owns:
+- **Room Entity**: Persistence model and table (`rooms`) in PostgreSQL
+- **Room Repository**: JPA persistence layer for Room resources
+- **Room Service**: Business logic for room CRUD and availability queries
+- **Room Controller**: REST API endpoints (`/api/rooms/**`) for room management
+- **Room Database**: Complete ownership of Room database storage
 
-### Temporary Responsibilities
-- **Room Data:** Room entity and queries currently reside in this service. In Phase 4 (Resource Service), Room data will be extracted. Access to Room data is isolated via `RoomProvider`.
-- **Authentication & User Data:** User entity, registration, login, and JWT filter are currently hosted here. In Phase 3/4, authentication will be handled by the API Gateway and Auth Service.
+### TIMETABLE-SERVICE owns:
+- **Timetable & Lecture**: Timetable metadata, lifecycle status (GENERATING, ACTIVE, ARCHIVED), and generated lecture schedule records
+- **Scheduler Engine**: Graph-coloring DSatur algorithm, day-spread slot ordering, multi-day P1 compaction
+- **RoomProvider**: High-level domain abstraction interface for fetching active room resources
+- **FeignRoomProvider**: Production OpenFeign client wrapper translating transport objects into domain models
+- **ResourceClient**: Declarative OpenFeign HTTP client communicating with `RESOURCE-SERVICE`
+- **RoomMapper**: DTO-to-domain transformation mapper
+- **Room Domain Model**: Pure in-memory POJO with zero persistence responsibility
+
+> [!NOTE]
+> `TIMETABLE-SERVICE` contains no room persistence configuration and does not manage any `rooms` database table.
 
 ---
 
-## 3. Layered Architecture & Dependency Flow
+## 3. Room Retrieval Execution Path
+
+Room retrieval for scheduling in `TIMETABLE-SERVICE` follows a strict, single execution path:
+
+```
+SchedulerService
+       │
+       ▼
+  RoomProvider (Abstraction Interface)
+       │
+       ▼
+FeignRoomProvider (@Primary Implementation)
+       │
+       ▼
+ ResourceClient (Declarative OpenFeign Client)
+       │
+       ▼
+RESOURCE-SERVICE (via Eureka Service Registry)
+```
+
+---
+
+## 4. Lecture Room Snapshot Strategy (Option A)
+
+For historical lecture persistence, `TIMETABLE-SERVICE` uses **Option A — Immutable Historical Snapshot Strategy**:
+- `Lecture` entities persist both `roomId` (`Long`) and `roomNumber` (`String`) directly as scalar columns in the `lectures` database table.
+- **Rationale**: Historical timetables must remain immutable records. If a room is later renamed or modified in `RESOURCE-SERVICE`, past generated timetables retain the exact room details assigned at generation time.
+
+---
+
+## 5. Layered Architecture & Dependency Flow
 
 The service follows strict clean layering:
 
@@ -38,49 +74,24 @@ The service follows strict clean layering:
 [ Service Layer ]  ────────► [ Provider Extension Interfaces ]
        │                                   │
        ▼                                   ▼
-[ Domain Layer / Entities ]      [ Local Implementations ]
+[ Domain Layer / Entities ]      [ Feign Implementations ]
        │                                   │
        ▼                                   ▼
-[ JPA Repositories ] ◄─────────────────────┘
-       │
-       ▼
-[ PostgreSQL / Neon DB ]
+[ JPA Repositories ]             [ OpenFeign Clients ]
+       │                                   │
+       ▼                                   ▼
+[ PostgreSQL DB ]                [ RESOURCE-SERVICE ]
 ```
 
 ### Flow Rules
-1. **Controllers** call **Services** only. Controllers never access Repositories or Providers directly.
+1. **Controllers** call **Services** only.
 2. **Services** execute domain logic and call **Providers** or **Repositories**.
-3. **Scheduler Engine** depends exclusively on the `RoomProvider` interface. It has zero knowledge of JPA, Hibernate, or PostgreSQL.
-4. **All dependencies** are injected via **constructor injection**. Field injection (`@Autowired`) is strictly eliminated.
+3. **Scheduler Engine** depends exclusively on the `RoomProvider` domain interface. It has zero knowledge of JPA, Hibernate, or OpenFeign HTTP details.
+4. **All dependencies** are injected via **constructor injection**.
 
 ---
 
-## 4. Key Abstractions Introduced in Phase 1
-
-### 4.1 RoomProvider (`com.scheduleflow.scheduler.RoomProvider`)
-- **Interface:** Abstracts room lookup and availability queries.
-- **Current Implementation:** `LocalRoomProvider` — delegates to `RoomRepository`.
-- **Future Implementation (Phase 6):** `ResourceServiceRoomProvider` — calls Resource Service via OpenFeign.
-- **Impact:** Zero lines of code in `SchedulerService` will change when moving to Resource Service.
-
-### 4.2 NotificationProvider (`com.scheduleflow.provider.NotificationProvider`)
-- **Interface:** Abstracts outbound email and notification dispatch.
-- **Current Implementation:** `NoOpNotificationProvider` — logs intent at DEBUG level.
-- **Future Implementation:** `SmtpNotificationProvider` or Kafka event to Notification Service.
-
-### 4.3 EventPublisher (`com.scheduleflow.provider.EventPublisher`)
-- **Interface:** Abstracts domain event publication (`TIMETABLE_GENERATED`, `TIMETABLE_ARCHIVED`).
-- **Current Implementation:** `NoOpEventPublisher` — logs event at INFO level.
-- **Future Implementation (Phase 5):** Kafka / RabbitMQ producer publishing to Event Service.
-
-### 4.4 AuditPublisher (`com.scheduleflow.provider.AuditPublisher`)
-- **Interface:** Abstracts system audit logging.
-- **Current Implementation:** `LocalAuditPublisher` — logs structured audit lines via SLF4J.
-- **Future Implementation:** Writes to audit table or central log stream.
-
----
-
-## 5. External Configuration & Production Readiness
+## 6. External Configuration & Production Readiness
 
 All configuration parameters are externalized using Spring Boot environment variable syntax:
 
@@ -92,6 +103,7 @@ All configuration parameters are externalized using Spring Boot environment vari
 | `spring.datasource.password` | `DB_PASS` | `""` |
 | `jwt.secret` | `JWT_SECRET` | *(configured fallback)* |
 | `app.cors.allowed-origins` | `ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` |
+| `eureka.client.service-url.defaultZone` | `EUREKA_URI` | `http://localhost:8761/eureka` |
 
 ### Health & Observability
 - Spring Boot Actuator endpoints enabled: `/actuator/health`, `/actuator/info`, `/actuator/metrics`.

@@ -1,41 +1,48 @@
 package com.scheduleflow.model;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "rooms")
+/**
+ * Pure in-memory domain model representing a room resource inside {@code TIMETABLE-SERVICE}.
+ *
+ * <p><strong>Architectural Boundary Notice (Phase 6):</strong>
+ * This class is <strong>NOT</strong> a JPA database entity and has <strong>zero persistence responsibility</strong>.
+ * Database persistence, entity mapping, and CRUD management for room resources are strictly and exclusively
+ * owned by {@code RESOURCE-SERVICE}.
+ *
+ * <p>This model is used purely in-memory by:
+ * <ul>
+ *   <li>{@link com.scheduleflow.service.SchedulerService} — for graph-coloring room allocation constraints</li>
+ *   <li>{@link com.scheduleflow.scheduler.RoomProvider} — domain abstraction interface</li>
+ *   <li>{@link com.scheduleflow.scheduler.FeignRoomProvider} — OpenFeign integration layer</li>
+ *   <li>{@link com.scheduleflow.mapper.RoomMapper} — DTO-to-domain transformation</li>
+ * </ul>
+ */
 public class Room {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "room_number", nullable = false, unique = true)
     private String roomNumber;
-
-    @Column(name = "maximum_capacity", nullable = false)
     private int maximumCapacity;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "room_type", nullable = false)
     private RoomType roomType;
-
-    @Column(name = "has_projector", nullable = false)
     private boolean hasProjector;
-
-    @Column(name = "has_ac", nullable = false)
     private boolean hasAc;
-
-    @Column(name = "has_computers", nullable = false)
     private boolean hasComputers;
-
-    @Column(name = "active", nullable = false)
     private boolean active = true;
 
     public Room() {}
 
     public Room(String roomNumber, int maximumCapacity, RoomType roomType,
                 boolean hasProjector, boolean hasAc, boolean hasComputers, boolean active) {
+        this.roomNumber = roomNumber;
+        this.maximumCapacity = maximumCapacity;
+        this.roomType = roomType;
+        this.hasProjector = hasProjector;
+        this.hasAc = hasAc;
+        this.hasComputers = hasComputers;
+        this.active = active;
+    }
+
+    public Room(Long id, String roomNumber, int maximumCapacity, RoomType roomType,
+                boolean hasProjector, boolean hasAc, boolean hasComputers, boolean active) {
+        this.id = id;
         this.roomNumber = roomNumber;
         this.maximumCapacity = maximumCapacity;
         this.roomType = roomType;

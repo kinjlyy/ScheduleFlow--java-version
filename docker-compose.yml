@@ -5,35 +5,104 @@ services:
     image: postgres:15-alpine
     container_name: scheduleflow-db
     environment:
-      POSTGRES_DB: scheduleflow
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: nunuhara@11
+      POSTGRES_DB: ${POSTGRES_DB:-scheduleflow}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  backend:
-    build: ./backend
-    container_name: scheduleflow-backend
-    depends_on:
-      - db
-    networks:
-      default:
-        aliases:
-          - backend.railway.internal
+  eureka-server:
+    build: ./scheduleflow-eureka-server
+    container_name: scheduleflow-eureka-server
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/scheduleflow
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: nunuhara@11
+      PORT: 8761
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  timetable-service:
+    build: ./backend
+    container_name: scheduleflow-timetable-service
+    depends_on:
+      db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-scheduleflow}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      EUREKA_URI: http://eureka-server:8761/eureka
     ports:
       - "8080:8080"
+
+  resource-service:
+    build: ./scheduleflow-resource-service
+    container_name: scheduleflow-resource-service
+    depends_on:
+      db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    environment:
+      PORT: 8081
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-scheduleflow}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      EUREKA_URI: http://eureka-server:8761/eureka
+    ports:
+      - "8081:8081"
+
+  event-service:
+    build: ./scheduleflow-event-service
+    container_name: scheduleflow-event-service
+    depends_on:
+      db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      resource-service:
+        condition: service_started
+      timetable-service:
+        condition: service_started
+    environment:
+      PORT: 8083
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-scheduleflow}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      EUREKA_URI: http://eureka-server:8761/eureka
+    ports:
+      - "8083:8083"
+
+  api-gateway:
+    build: ./scheduleflow-api-gateway
+    container_name: scheduleflow-api-gateway
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      PORT: 8082
+      EUREKA_URI: http://eureka-server:8761/eureka
+    ports:
+      - "8082:8082"
 
   frontend:
     build: ./frontend
     container_name: scheduleflow-frontend
     depends_on:
-      - backend
+      - api-gateway
     ports:
       - "3000:80"
 

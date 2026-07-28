@@ -18,8 +18,8 @@ import java.util.Optional;
 /**
  * Production OpenFeign implementation of {@link RoomProvider}.
  *
- * <p>Phase 5 Microservice Migration:
- * Replaces {@link LocalRoomProvider} as the primary {@link RoomProvider} implementation.
+ * <p>Phase 5/6 Microservice Migration:
+ * Serves as the sole {@link RoomProvider} implementation in {@code TIMETABLE-SERVICE}.
  * Delegates HTTP calls to {@link ResourceClient} and relies on {@link RoomMapper} for DTO-to-domain mapping.
  *
  * <p><strong>Clean Architecture & Exception Flow:</strong>

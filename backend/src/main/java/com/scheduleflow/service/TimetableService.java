@@ -59,9 +59,8 @@ public class TimetableService {
 
         // 3. If the scheduler returned results, persist lectures
         if (response.getTimetable() != null && !response.getTimetable().isEmpty()) {
-            // Build room lookup map (id -> Room entity) via RoomProvider abstraction.
-            // LocalRoomProvider returns active rooms; future ResourceServiceRoomProvider
-            // will call OpenFeign to the Resource Service for the same data.
+            // Build room lookup map (id -> Room domain model) via RoomProvider abstraction.
+            // FeignRoomProvider calls OpenFeign to RESOURCE-SERVICE for active room data.
             Map<Long, Room> roomLookup = new HashMap<>();
             roomProvider.findAllActiveRooms().forEach(r -> roomLookup.put(r.getId(), r));
 
@@ -121,12 +120,16 @@ public class TimetableService {
                             room = roomLookup.get(sectionFixedRoom.get(sectionId));
                         }
 
+                        Long roomId = room != null ? room.getId() : cell.getRoomId();
+                        String roomNumber = room != null ? room.getRoomNumber() : cell.getRoomNumber();
+
                         Lecture lecture = new Lecture(
                                 timetable,
                                 sectionId,
                                 cell.getSubject(),
                                 cell.getTeacher(),
-                                room,
+                                roomId,
+                                roomNumber,
                                 day,
                                 slot,
                                 lt,
@@ -261,6 +264,129 @@ public class TimetableService {
 
     // ── DTO Converters ────────────────────────────────────────────────────────
 
+    // ── Phase 7C Impact Analysis & Orchestrated Execution ─────────────────────
+
+    @Transactional(readOnly = true)
+    public TimetableImpactResponse calculateImpact(Long timetableId, java.time.LocalDate date,
+                                                   Integer startPeriod, Integer endPeriod,
+                                                   Long locationId) {
+        Timetable timetable = timetableRepository.findById(timetableId)
+                .orElseThrow(() -> new ResourceNotFoundException("Timetable", timetableId));
+
+        String day = date != null ? date.getDayOfWeek().name() : "MONDAY";
+        List<Lecture> dayLectures = lectureRepository.findByTimetableIdAndDay(timetable.getId(), day);
+
+        List<Lecture> impacted = dayLectures.stream()
+                .filter(l -> l.getLectureSlot() >= startPeriod && l.getLectureSlot() <= endPeriod)
+                .filter(l -> locationId == null || (l.getRoomId() != null && l.getRoomId().equals(locationId)))
+                .toList();
+
+        List<ImpactedLectureDTO> impactedDTOs = impacted.stream()
+                .map(l -> new ImpactedLectureDTO(
+                        l.getId(),
+                        l.getSubjectId(),
+                        l.getTeacherId(),
+                        l.getSectionId(),
+                        l.getDay(),
+                        l.getLectureSlot(),
+                        l.getRoomNumber(),
+                        l.getLectureType() != LectureType.LAB
+                ))
+                .toList();
+
+        List<String> teachers = impacted.stream().map(Lecture::getTeacherId).distinct().toList();
+        List<String> sections = impacted.stream().map(Lecture::getSectionId).distinct().toList();
+        List<String> rooms = impacted.stream().map(Lecture::getRoomNumber).filter(Objects::nonNull).distinct().toList();
+        List<String> subjects = impacted.stream().map(Lecture::getSubjectId).distinct().toList();
+
+        int reschedulableCount = (int) impactedDTOs.stream().filter(ImpactedLectureDTO::isReschedulable).count();
+        int nonReschedulableCount = impactedDTOs.size() - reschedulableCount;
+
+        List<String> conflicts = new ArrayList<>();
+        if (impacted.size() > 0) {
+            conflicts.add(impacted.size() + " lectures conflict with event timeframe on " + day + " periods " + startPeriod + "-" + endPeriod);
+        }
+
+        String summary = String.format("Impact Analysis: %d lectures affected (%d reschedulable, %d non-reschedulable) across %d sections and %d teachers.",
+                impacted.size(), reschedulableCount, nonReschedulableCount, sections.size(), teachers.size());
+
+        return new TimetableImpactResponse(
+                timetableId, impactedDTOs, teachers, sections, rooms, subjects,
+                impacted.size(), reschedulableCount, nonReschedulableCount, conflicts, summary
+        );
+    }
+
+    @Transactional
+    public TimetableExecutionResultDTO executeEventImpact(Long timetableId, TimetableExecutionRequest request) {
+        Timetable timetable = timetableRepository.findById(timetableId)
+                .orElseThrow(() -> new ResourceNotFoundException("Timetable", timetableId));
+
+        List<Long> affectedIds = request.getAffectedLectureIds() != null ? request.getAffectedLectureIds() : List.of();
+        List<Lecture> targetLectures = lectureRepository.findAllById(affectedIds).stream()
+                .filter(l -> l.getTimetable().getId().equals(timetable.getId()))
+                .toList();
+
+        List<Long> rescheduledIds = new ArrayList<>();
+        List<Long> cancelledIds = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        String strategy = request.getExecutionStrategy() != null ? request.getExecutionStrategy() : "CANCEL_ALL";
+
+        if ("CANCEL_ALL".equalsIgnoreCase(strategy)) {
+            for (Lecture l : targetLectures) {
+                cancelledIds.add(l.getId());
+                lectureRepository.delete(l);
+            }
+        } else if ("RESCHEDULE_AND_CANCEL".equalsIgnoreCase(strategy)) {
+            // All existing lectures in this timetable version for collision checking
+            List<Lecture> allLectures = lectureRepository.findByTimetableId(timetable.getId());
+            Set<String> takenSlots = allLectures.stream()
+                    .map(l -> l.getDay() + ":" + l.getLectureSlot() + ":" + l.getSectionId())
+                    .collect(Collectors.toSet());
+
+            for (Lecture l : targetLectures) {
+                if (l.getLectureType() == LectureType.LAB) {
+                    warnings.add("Laboratory lecture " + l.getSubjectId() + " (Section " + l.getSectionId() + ") cannot be rescheduled — cancelled.");
+                    cancelledIds.add(l.getId());
+                    lectureRepository.delete(l);
+                    continue;
+                }
+
+                // Try finding an alternative slot (periods 1..6 on any weekday)
+                boolean rescheduled = false;
+                for (String day : DAYS) {
+                    for (int slot = 1; slot <= 6; slot++) {
+                        String slotKey = day + ":" + slot + ":" + l.getSectionId();
+                        if (!takenSlots.contains(slotKey)) {
+                            l.setDay(day);
+                            l.setLectureSlot(slot);
+                            lectureRepository.save(l);
+                            takenSlots.add(slotKey);
+                            rescheduledIds.add(l.getId());
+                            rescheduled = true;
+                            break;
+                        }
+                    }
+                    if (rescheduled) break;
+                }
+
+                if (!rescheduled) {
+                    warnings.add("No free slot available for " + l.getSubjectId() + " (Section " + l.getSectionId() + ") — cancelled.");
+                    cancelledIds.add(l.getId());
+                    lectureRepository.delete(l);
+                }
+            }
+        }
+
+        String summary = String.format("Execution completed for strategy %s: %d rescheduled, %d cancelled.",
+                strategy, rescheduledIds.size(), cancelledIds.size());
+
+        return new TimetableExecutionResultDTO(
+                "SUCCESS", summary, rescheduledIds.size(), cancelledIds.size(),
+                rescheduledIds, cancelledIds, warnings
+        );
+    }
+
     private TimetableDTO toTimetableDTO(Timetable t) {
         return new TimetableDTO(
                 t.getId(), t.getName(), t.getSemester(), t.getAcademicYear(),
@@ -269,15 +395,14 @@ public class TimetableService {
     }
 
     private LectureDTO toLectureDTO(Lecture l) {
-        Room room = l.getRoom();
         return new LectureDTO(
                 l.getId(),
                 l.getTimetable().getId(),
                 l.getSectionId(),
                 l.getSubjectId(),
                 l.getTeacherId(),
-                room != null ? room.getId() : null,
-                room != null ? room.getRoomNumber() : null,
+                l.getRoomId(),
+                l.getRoomNumber(),
                 l.getDay(),
                 l.getLectureSlot(),
                 l.getLectureType()

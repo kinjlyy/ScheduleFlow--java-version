@@ -51,13 +51,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints — health, auth, actuator, rooms
+                // Public endpoints — health, auth, actuator
                 .requestMatchers(
                     "/",
                     "/actuator/health",
                     "/actuator/info",
                     "/api/auth/**",
-                    "/api/rooms/**",
                     "/api/health"
                 ).permitAll()
                 .anyRequest().authenticated()
