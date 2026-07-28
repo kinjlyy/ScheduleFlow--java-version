@@ -15,7 +15,7 @@ WORKDIR /app
 RUN addgroup -S scheduleflow && adduser -S scheduleflow -G scheduleflow
 USER scheduleflow
 
-COPY --from=build /app/target/scheduleflow-event-service-1.0.0.jar app.jar
+COPY --from=build /app/target/*.jar app.jar
 
 # Environment variables (all required; no defaults — use docker-compose or Render env)
 # DATABASE_URL, DB_USER, DB_PASS, EUREKA_URI

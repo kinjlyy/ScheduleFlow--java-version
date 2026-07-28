@@ -13,7 +13,7 @@ WORKDIR /app
 RUN addgroup -S scheduleflow && adduser -S scheduleflow -G scheduleflow
 USER scheduleflow
 
-COPY --from=build /app/target/scheduleflow-resource-service-1.0.0.jar app.jar
+COPY --from=build /app/target/*.jar app.jar
 
 ENV PORT=8081
 
