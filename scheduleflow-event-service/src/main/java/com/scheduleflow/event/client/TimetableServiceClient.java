@@ -15,8 +15,11 @@ import java.util.Map;
  *
  * <p><strong>Phase 7C Status: Active.</strong>
  * Used by Event Service (orchestrator) to analyze timetable impact and trigger execution.
+ *
+ * <p>Uses direct URL resolution via {@code TIMETABLE_SERVICE_URL} environment variable,
+ * bypassing Eureka service discovery for compatibility with Render Free Tier.
  */
-@FeignClient(name = "TIMETABLE-SERVICE", path = "/api/timetables")
+@FeignClient(name = "TIMETABLE-SERVICE", url = "${TIMETABLE_SERVICE_URL:http://localhost:8080}", path = "/api/timetables")
 public interface TimetableServiceClient {
 
     /**

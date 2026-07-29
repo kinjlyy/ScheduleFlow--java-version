@@ -12,12 +12,16 @@ import java.util.List;
 /**
  * Declarative OpenFeign client for communicating with {@code RESOURCE-SERVICE}.
  *
- * <p>Phase 5 Microservice Migration:
- * Discovers {@code RESOURCE-SERVICE} dynamically via Eureka Service Registry.
- * Exposes business-oriented capabilities rather than low-level database query APIs.
+ * <p>Uses environment-variable URL resolution instead of Eureka service discovery,
+ * required for Render Free Tier where sleeping services cause Eureka heartbeat
+ * expiry and Feign connect timeouts before cold-start completes.
+ *
+ * <p>Set {@code RESOURCE_SERVICE_URL} in production environment variables
+ * to the Render public URL, e.g. {@code https://scheduleflow-java-version-1.onrender.com}.
  */
 @FeignClient(
     name = "RESOURCE-SERVICE",
+    url = "${RESOURCE_SERVICE_URL:http://localhost:8081}",
     configuration = ResourceFeignConfiguration.class
 )
 public interface ResourceClient {

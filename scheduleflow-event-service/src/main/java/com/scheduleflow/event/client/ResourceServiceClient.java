@@ -13,8 +13,11 @@ import java.util.List;
  * <p><strong>Phase 7B Status: Active.</strong>
  * Returns typed {@link RoomResponse} objects directly without wrapping in {@code ResponseEntity}.
  * Business logic delegates room metadata lookups to this client.
+ *
+ * <p>Uses direct URL resolution via {@code RESOURCE_SERVICE_URL} environment variable,
+ * bypassing Eureka service discovery for compatibility with Render Free Tier.
  */
-@FeignClient(name = "RESOURCE-SERVICE", path = "/api/rooms")
+@FeignClient(name = "RESOURCE-SERVICE", url = "${RESOURCE_SERVICE_URL:http://localhost:8081}", path = "/api/rooms")
 public interface ResourceServiceClient {
 
     /**
