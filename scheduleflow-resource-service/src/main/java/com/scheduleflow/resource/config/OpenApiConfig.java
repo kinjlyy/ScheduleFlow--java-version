@@ -4,17 +4,22 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * OpenAPI configuration for ScheduleFlow Resource Service.
  *
  * <p>Swagger UI is available at: {@code /swagger-ui.html}
  * OpenAPI JSON spec is at: {@code /v3/api-docs}
+ *
+ * <p><strong>Server URL strategy:</strong> No explicit server list is declared here.
+ * SpringDoc automatically derives the server URL from the incoming HTTP request
+ * (scheme + host + port), which means:
+ * <ul>
+ *   <li>Local dev: Swagger executes against {@code http://localhost:8081}</li>
+ *   <li>Render prod: Swagger executes against {@code https://scheduleflow-java-version-1.onrender.com}</li>
+ * </ul>
  */
 @Configuration
 public class OpenApiConfig {
@@ -42,10 +47,8 @@ public class OpenApiConfig {
                                 .email("support@scheduleflow.com"))
                         .license(new License()
                                 .name("Proprietary")
-                                .url("https://scheduleflow.com")))
-                .servers(List.of(
-                        new Server().url("http://localhost:8081").description("Local Development"),
-                        new Server().url("https://scheduleflow-resource.onrender.com").description("Production (Render)")
-                ));
+                                .url("https://scheduleflow.com")));
+        // No .servers() call — SpringDoc infers the base URL from the HTTP request,
+        // so Swagger UI always targets the actual host serving the API.
     }
 }
