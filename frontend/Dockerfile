@@ -14,9 +14,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # with envsubst and outputs to /etc/nginx/conf.d/
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Default local fallback; override in Render Web Service environment variables:
-# API_GATEWAY_URL = https://scheduleflow-api-gateway.onrender.com
-ENV API_GATEWAY_URL=http://localhost:8082
+# Default Render backend URL fallback; override in Render Web Service environment variables if needed
+ENV API_GATEWAY_URL=https://scheduleflow-backend.onrender.com
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

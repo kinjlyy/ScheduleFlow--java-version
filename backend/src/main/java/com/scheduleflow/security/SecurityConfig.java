@@ -23,13 +23,6 @@ import java.util.List;
 
 /**
  * Spring Security configuration for the Timetable Service.
- *
- * <p>CORS origins are fully externalized to {@code app.cors.allowed-origins} in
- * {@code application.properties}. No values are hardcoded here.
- *
- * <p><strong>Future migration note:</strong> When an API Gateway is introduced (Phase 3),
- * CORS should be handled at the gateway level and this configuration simplified.
- * JWT validation may also move to the gateway, at which point this filter chain simplifies further.
  */
 @Configuration
 @EnableWebSecurity
@@ -38,7 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter authFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String allowedOriginsConfig;
 
     public SecurityConfig(JwtAuthFilter authFilter) {
@@ -51,13 +44,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints — health, auth, actuator
+                // Public endpoints — health, auth, actuator, timetable generation
                 .requestMatchers(
                     "/",
                     "/actuator/health",
                     "/actuator/info",
                     "/api/auth/**",
-                    "/api/health"
+                    "/api/health",
+                    "/api/generate"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -71,12 +65,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Base: always allow localhost for local development
         List<String> allowedOrigins = new ArrayList<>();
         allowedOrigins.add("http://localhost:[*]");
         allowedOrigins.add("http://127.0.0.1:[*]");
 
-        // Additional origins from application.properties / environment variable
         if (allowedOriginsConfig != null && !allowedOriginsConfig.isBlank()) {
             Arrays.stream(allowedOriginsConfig.split(","))
                     .map(String::trim)
