@@ -74,7 +74,8 @@ export default function App() {
       setRooms(prev => [...prev, created]);
       loadRoomsData();
     } catch (err) {
-      // Local fallback if backend fails
+      console.error('Failed to create room in backend:', err);
+      // Fallback local addition with warning log
       const fallbackRoom = { ...roomData, id: Date.now() };
       setRooms(prev => [...prev, fallbackRoom]);
     }
@@ -86,6 +87,7 @@ export default function App() {
       setRooms(prev => prev.map(r => r.id === id ? updated : r));
       loadRoomsData();
     } catch (err) {
+      console.error('Failed to update room in backend:', err);
       setRooms(prev => prev.map(r => r.id === id ? { ...roomData, id } : r));
     }
   };
@@ -96,6 +98,7 @@ export default function App() {
       setRooms(prev => prev.filter(r => r.id !== id));
       loadRoomsData();
     } catch (err) {
+      console.error('Failed to delete room in backend:', err);
       setRooms(prev => prev.filter(r => r.id !== id));
     }
   };

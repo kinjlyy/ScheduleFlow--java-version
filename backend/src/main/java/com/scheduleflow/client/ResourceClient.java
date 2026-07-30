@@ -49,4 +49,28 @@ public interface ResourceClient {
      */
     @GetMapping("/api/rooms/{id}")
     RoomDTO getRoom(@PathVariable("id") Long id);
+
+    /**
+     * Business Capability: Fetches room summary statistics.
+     */
+    @GetMapping("/api/rooms/summary")
+    Object getRoomSummary();
+
+    /**
+     * Business Capability: Creates a new room in RESOURCE-SERVICE.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/api/rooms")
+    RoomDTO createRoom(@org.springframework.web.bind.annotation.RequestBody RoomDTO roomDTO);
+
+    /**
+     * Business Capability: Updates an existing room in RESOURCE-SERVICE.
+     */
+    @org.springframework.web.bind.annotation.PutMapping("/api/rooms/{id}")
+    RoomDTO updateRoom(@PathVariable("id") Long id, @org.springframework.web.bind.annotation.RequestBody RoomDTO roomDTO);
+
+    /**
+     * Business Capability: Deletes a room from RESOURCE-SERVICE.
+     */
+    @org.springframework.web.bind.annotation.DeleteMapping("/api/rooms/{id}")
+    void deleteRoom(@PathVariable("id") Long id);
 }

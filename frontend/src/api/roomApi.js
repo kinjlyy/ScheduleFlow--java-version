@@ -3,6 +3,8 @@
 
 import { BASE_URL } from './timetableApi.js';
 
+export const ROOM_BASE_URL = import.meta.env.VITE_RESOURCE_SERVICE_URL || BASE_URL;
+
 function getHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
@@ -12,7 +14,7 @@ function getHeaders(token) {
 }
 
 export async function fetchRooms(token) {
-  const res = await fetch(`${BASE_URL}/rooms`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms`, {
     headers: getHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to fetch rooms: ${res.statusText}`);
@@ -20,7 +22,7 @@ export async function fetchRooms(token) {
 }
 
 export async function fetchRoomSummary(token) {
-  const res = await fetch(`${BASE_URL}/rooms/summary`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms/summary`, {
     headers: getHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to fetch room summary: ${res.statusText}`);
@@ -28,7 +30,7 @@ export async function fetchRoomSummary(token) {
 }
 
 export async function fetchRoomsByCapacity(capacity, token) {
-  const res = await fetch(`${BASE_URL}/rooms/capacity/${capacity}`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms/capacity/${capacity}`, {
     headers: getHeaders(token),
   });
   if (!res.ok) throw new Error(`Failed to fetch rooms for capacity ${capacity}: ${res.statusText}`);
@@ -36,7 +38,7 @@ export async function fetchRoomsByCapacity(capacity, token) {
 }
 
 export async function createRoom(roomData, token) {
-  const res = await fetch(`${BASE_URL}/rooms`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms`, {
     method: 'POST',
     headers: getHeaders(token),
     body: JSON.stringify(roomData),
@@ -49,7 +51,7 @@ export async function createRoom(roomData, token) {
 }
 
 export async function updateRoom(id, roomData, token) {
-  const res = await fetch(`${BASE_URL}/rooms/${id}`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms/${id}`, {
     method: 'PUT',
     headers: getHeaders(token),
     body: JSON.stringify(roomData),
@@ -62,7 +64,7 @@ export async function updateRoom(id, roomData, token) {
 }
 
 export async function deleteRoom(id, token) {
-  const res = await fetch(`${BASE_URL}/rooms/${id}`, {
+  const res = await fetch(`${ROOM_BASE_URL}/rooms/${id}`, {
     method: 'DELETE',
     headers: getHeaders(token),
   });
