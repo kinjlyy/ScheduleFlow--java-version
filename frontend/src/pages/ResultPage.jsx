@@ -5,6 +5,8 @@ import TimetableGrid from '../components/TimetableGrid.jsx';
 import StepFooter from '../components/StepFooter.jsx';
 import styles from './ResultPage.module.css';
 
+import { BASE_URL } from '../api/timetableApi.js';
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function ResultPage({
@@ -139,7 +141,7 @@ export default function ResultPage({
         <Alert type="error">
           {error}
           <div style={{ marginTop: 6, fontSize: '0.82rem' }}>
-            Make sure the Java backend is running on <code>http://localhost:8080</code>
+            Make sure the Java backend is running and reachable at <code>{BASE_URL}</code>
           </div>
         </Alert>
       )}
