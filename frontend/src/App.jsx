@@ -292,6 +292,7 @@ export default function App() {
           {activePage === 'result' && (
             <ResultPage
               sections={sections}
+              rooms={rooms}
               daysPerWeek={daysPerWeek} periodsPerDay={periodsPerDay}
               onGenerate={handleGenerate}
               loading={loading} result={result} error={error}

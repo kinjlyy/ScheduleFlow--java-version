@@ -11,6 +11,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function ResultPage({
   sections,
+  rooms,
   daysPerWeek,
   periodsPerDay,
   onGenerate,
@@ -32,7 +33,17 @@ export default function ResultPage({
         sections: sections.map(s => ({ id: s.id, name: s.name })),
         timetable: result.timetable,
         days: DAYS.slice(0, daysPerWeek),
-        periods: periodsPerDay
+        periods: periodsPerDay,
+        rooms: (rooms || []).map(r => ({
+          id: r.id,
+          roomNumber: r.roomNumber,
+          maximumCapacity: r.maximumCapacity,
+          roomType: r.roomType,
+          hasProjector: r.hasProjector,
+          hasAc: r.hasAc,
+          hasComputers: r.hasComputers,
+        })),
+        stats: result.stats || null,
       };
 
       const response = await fetch(GAS_URL, {
