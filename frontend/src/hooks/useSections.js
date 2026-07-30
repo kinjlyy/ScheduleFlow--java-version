@@ -142,6 +142,16 @@ export function useSections() {
       periodsPerDay: constraints.periodsPerDay,
       teacherMaxLectures: constraints.teacherMaxLectures,
       roomAllocationStrategy: constraints.roomAllocationStrategy || 'DYNAMIC_ALLOCATION',
+      rooms: (constraints.rooms || []).map(r => ({
+        id: r.id,
+        roomNumber: String(r.roomNumber || r.id),
+        maximumCapacity: Number(r.maximumCapacity) || 60,
+        roomType: r.roomType || 'CLASSROOM',
+        hasProjector: Boolean(r.hasProjector),
+        hasAc: Boolean(r.hasAc),
+        hasComputers: Boolean(r.hasComputers),
+        active: r.active !== false,
+      })),
     };
   }, [sections]);
 

@@ -172,14 +172,15 @@ export default function App() {
     if (sections.length === 0) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const data = await generateTimetable(toApiPayload(toConstraints()), token);
+      const payload = toApiPayload({ ...toConstraints(), rooms });
+      const data = await generateTimetable(payload, token);
       setResult(data);
     } catch (err) {
       setError(err.message || 'Failed to connect to the backend.');
     } finally {
       setLoading(false);
     }
-  }, [sections, toApiPayload, toConstraints]);
+  }, [sections, rooms, toApiPayload, toConstraints, token]);
 
   // ── App-level navigation ────────────────────────────────────────────────
   function handleLogin(name) {

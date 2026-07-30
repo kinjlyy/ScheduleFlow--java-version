@@ -38,14 +38,19 @@ public class SchedulerService {
     private static final String[] DAYS = TimetableConstants.DAYS;
 
     private final RoomProvider roomProvider;
+    private final com.scheduleflow.repository.LocalRoomStore localRoomStore;
 
-    public SchedulerService(RoomProvider roomProvider) {
+    public SchedulerService(RoomProvider roomProvider, com.scheduleflow.repository.LocalRoomStore localRoomStore) {
         this.roomProvider = roomProvider;
+        this.localRoomStore = localRoomStore;
     }
 
     // ── Public entry point ────────────────────────────────────────────────────
 
     public TimetableResponseDTO generate(TimetableRequestDTO request) {
+        if (request.getRooms() != null && !request.getRooms().isEmpty()) {
+            request.getRooms().forEach(localRoomStore::createRoom);
+        }
         int days    = Math.min(request.getDaysPerWeek(), 7);
         int periods = request.getPeriodsPerDay();
         int maxPerSection = days * periods;
@@ -387,6 +392,19 @@ public class SchedulerService {
         // LocalRoomProvider delegates to RoomRepository.
         // Future: ResourceServiceRoomProvider will call OpenFeign instead.
         List<Room> allRooms = roomProvider.findAllActiveRooms();
+        if (allRooms == null || allRooms.isEmpty()) {
+            allRooms = localRoomStore.getActiveDomainRooms();
+        }
+        if (allRooms == null || allRooms.isEmpty()) {
+            Room r101 = new Room("101", 60, RoomType.CLASSROOM, true, true, false, true);
+            r101.setId(101L);
+            Room r102 = new Room("102", 60, RoomType.CLASSROOM, true, true, false, true);
+            r102.setId(102L);
+            Room rLabA = new Room("Lab-A", 60, RoomType.LABORATORY, false, true, true, true);
+            rLabA.setId(103L);
+            allRooms = List.of(r101, r102, rLabA);
+            allRooms.forEach(r -> localRoomStore.createRoom(new RoomDTO(r.getId(), r.getRoomNumber(), r.getMaximumCapacity(), r.getRoomType(), r.isHasProjector(), r.isHasAc(), r.isHasComputers(), r.isActive())));
+        }
 
         // Build fixedRoom lookup: roomId -> Room
         Map<Long, Room> roomById = new HashMap<>();

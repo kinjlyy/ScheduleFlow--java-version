@@ -11,6 +11,7 @@ public class TimetableRequestDTO {
     private int periodsPerDay;
     private Map<String, Integer> teacherMaxLectures; // teacher -> max lectures/week
     private RoomAllocationStrategy roomAllocationStrategy = RoomAllocationStrategy.DYNAMIC_ALLOCATION;
+    private List<RoomDTO> rooms;
 
     public TimetableRequestDTO() {}
 
@@ -28,4 +29,7 @@ public class TimetableRequestDTO {
 
     public RoomAllocationStrategy getRoomAllocationStrategy() { return roomAllocationStrategy; }
     public void setRoomAllocationStrategy(RoomAllocationStrategy roomAllocationStrategy) { this.roomAllocationStrategy = roomAllocationStrategy; }
+
+    public List<RoomDTO> getRooms() { return rooms; }
+    public void setRooms(List<RoomDTO> rooms) { this.rooms = rooms; }
 }

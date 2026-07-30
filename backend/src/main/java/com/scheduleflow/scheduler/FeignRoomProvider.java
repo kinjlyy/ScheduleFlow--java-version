@@ -2,11 +2,9 @@ package com.scheduleflow.scheduler;
 
 import com.scheduleflow.client.ResourceClient;
 import com.scheduleflow.dto.RoomDTO;
-import com.scheduleflow.exception.RoomServiceUnavailableException;
 import com.scheduleflow.mapper.RoomMapper;
 import com.scheduleflow.model.Room;
-import feign.FeignException;
-import feign.RetryableException;
+import com.scheduleflow.repository.LocalRoomStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Primary;
@@ -16,17 +14,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Production OpenFeign implementation of {@link RoomProvider}.
+ * Production implementation of {@link RoomProvider} with LocalRoomStore fallback.
  *
- * <p>Phase 5/6 Microservice Migration:
- * Serves as the sole {@link RoomProvider} implementation in {@code TIMETABLE-SERVICE}.
- * Delegates HTTP calls to {@link ResourceClient} and relies on {@link RoomMapper} for DTO-to-domain mapping.
- *
- * <p><strong>Clean Architecture & Exception Flow:</strong>
- * Catches low-level infrastructure exceptions ({@link FeignException}, {@link RetryableException})
- * and translates them into a transport-agnostic {@link RoomServiceUnavailableException}.
- * This ensures {@link com.scheduleflow.service.SchedulerService} remains clean and framework-independent,
- * while web REST requests automatically map to HTTP 503 Service Unavailable.
+ * <p>Queries {@code RESOURCE-SERVICE} via OpenFeign when available, and seamlessly
+ * falls back to {@link LocalRoomStore} if {@code RESOURCE-SERVICE} is offline or unreachable.
  */
 @Component
 @Primary
@@ -36,62 +27,62 @@ public class FeignRoomProvider implements RoomProvider {
 
     private final ResourceClient resourceClient;
     private final RoomMapper roomMapper;
+    private final LocalRoomStore localRoomStore;
 
-    public FeignRoomProvider(ResourceClient resourceClient, RoomMapper roomMapper) {
+    public FeignRoomProvider(ResourceClient resourceClient, RoomMapper roomMapper, LocalRoomStore localRoomStore) {
         this.resourceClient = resourceClient;
         this.roomMapper = roomMapper;
+        this.localRoomStore = localRoomStore;
     }
 
     /**
-     * Retrieves all active rooms from {@code RESOURCE-SERVICE}.
+     * Retrieves all active rooms from {@code RESOURCE-SERVICE} with fallback to {@link LocalRoomStore}.
      *
      * @return list of active domain {@link Room} models
-     * @throws RoomServiceUnavailableException if {@code RESOURCE-SERVICE} is unreachable or fails
      */
     @Override
     public List<Room> findAllActiveRooms() {
         try {
             List<RoomDTO> dtos = resourceClient.getActiveRooms();
-            return roomMapper.toDomainList(dtos);
-        } catch (RetryableException e) {
-            log.error("Network connectivity/timeout error contacting RESOURCE-SERVICE: {}", e.getMessage());
-            throw new RoomServiceUnavailableException("Resource Service is currently unreachable. Unable to fetch room resources.", e);
-        } catch (FeignException e) {
-            log.error("HTTP error {} received from RESOURCE-SERVICE: {}", e.status(), e.getMessage());
-            throw new RoomServiceUnavailableException("Resource Service returned error status: " + e.status(), e);
+            if (dtos != null && !dtos.isEmpty()) {
+                dtos.forEach(localRoomStore::createRoom);
+                return roomMapper.toDomainList(dtos);
+            }
         } catch (Exception e) {
-            log.error("Unexpected infrastructure failure while communicating with RESOURCE-SERVICE: {}", e.getMessage(), e);
-            throw new RoomServiceUnavailableException("Unexpected error communicating with Resource Service", e);
+            log.warn("RESOURCE-SERVICE unreachable for active rooms, falling back to LocalRoomStore: {}", e.getMessage());
         }
+        return localRoomStore.getActiveDomainRooms();
     }
 
     /**
-     * Looks up a room by ID from {@code RESOURCE-SERVICE}.
+     * Looks up a room by ID from {@code RESOURCE-SERVICE} with fallback to {@link LocalRoomStore}.
      *
      * @param id unique room identifier
-     * @return optional containing domain {@link Room} if present and active; empty if 404 Not Found
-     * @throws RoomServiceUnavailableException if {@code RESOURCE-SERVICE} is unreachable or fails
+     * @return optional containing domain {@link Room} if present
      */
     @Override
     public Optional<Room> findRoomById(Long id) {
         try {
             RoomDTO dto = resourceClient.getRoom(id);
-            if (dto == null || !dto.isActive()) {
-                return Optional.empty();
+            if (dto != null && dto.isActive()) {
+                return Optional.ofNullable(roomMapper.toDomain(dto));
             }
-            return Optional.ofNullable(roomMapper.toDomain(dto));
-        } catch (FeignException.NotFound e) {
-            log.warn("Room ID {} not found in RESOURCE-SERVICE", id);
-            return Optional.empty();
-        } catch (RetryableException e) {
-            log.error("Network connectivity error fetching room ID {} from RESOURCE-SERVICE: {}", id, e.getMessage());
-            throw new RoomServiceUnavailableException("Resource Service is currently unreachable for room lookup.", e);
-        } catch (FeignException e) {
-            log.error("HTTP error {} fetching room ID {} from RESOURCE-SERVICE: {}", e.status(), id, e.getMessage());
-            throw new RoomServiceUnavailableException("Resource Service returned error status: " + e.status(), e);
         } catch (Exception e) {
-            log.error("Unexpected failure fetching room ID {} from RESOURCE-SERVICE: {}", id, e.getMessage(), e);
-            throw new RoomServiceUnavailableException("Unexpected error communicating with Resource Service", e);
+            log.warn("RESOURCE-SERVICE unreachable for room lookup ID {}, falling back to LocalRoomStore: {}", id, e.getMessage());
         }
+        return localRoomStore.getRoomById(id)
+                .filter(RoomDTO::isActive)
+                .map(dto -> {
+                    Room r = new Room();
+                    r.setId(dto.getId());
+                    r.setRoomNumber(dto.getRoomNumber());
+                    r.setMaximumCapacity(dto.getMaximumCapacity());
+                    r.setRoomType(dto.getRoomType());
+                    r.setHasProjector(dto.isHasProjector());
+                    r.setHasAc(dto.isHasAc());
+                    r.setHasComputers(dto.isHasComputers());
+                    r.setActive(dto.isActive());
+                    return r;
+                });
     }
 }

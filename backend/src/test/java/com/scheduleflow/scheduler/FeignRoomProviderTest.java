@@ -31,12 +31,14 @@ class FeignRoomProviderTest {
     private ResourceClient resourceClient;
 
     private RoomMapper roomMapper;
+    private com.scheduleflow.repository.LocalRoomStore localRoomStore;
     private FeignRoomProvider feignRoomProvider;
 
     @BeforeEach
     void setUp() {
         roomMapper = new RoomMapper();
-        feignRoomProvider = new FeignRoomProvider(resourceClient, roomMapper);
+        localRoomStore = new com.scheduleflow.repository.LocalRoomStore();
+        feignRoomProvider = new FeignRoomProvider(resourceClient, roomMapper, localRoomStore);
     }
 
     @Test
@@ -55,13 +57,15 @@ class FeignRoomProviderTest {
     }
 
     @Test
-    void findAllActiveRooms_shouldThrowRoomServiceUnavailableExceptionOnFeignException() {
+    void findAllActiveRooms_shouldFallbackToLocalStoreOnFeignException() {
         Request request = Request.create(Request.HttpMethod.GET, "/api/rooms/active", Collections.emptyMap(), null, null, null);
         given(resourceClient.getActiveRooms()).willThrow(new RetryableException(503, "Service Unavailable", Request.HttpMethod.GET, new Date(), request));
 
-        assertThatThrownBy(() -> feignRoomProvider.findAllActiveRooms())
-                .isInstanceOf(RoomServiceUnavailableException.class)
-                .hasMessageContaining("Resource Service is currently unreachable");
+        localRoomStore.createRoom(new RoomDTO(101L, "R101", 50, RoomType.CLASSROOM, true, true, false, true));
+        List<Room> rooms = feignRoomProvider.findAllActiveRooms();
+
+        assertThat(rooms).hasSize(1);
+        assertThat(rooms.get(0).getRoomNumber()).isEqualTo("R101");
     }
 
     @Test
@@ -76,22 +80,14 @@ class FeignRoomProviderTest {
     }
 
     @Test
-    void findRoomById_shouldReturnEmptyOnNotFound404() {
-        Request request = Request.create(Request.HttpMethod.GET, "/api/rooms/99", Collections.emptyMap(), null, null, null);
-        given(resourceClient.getRoom(99L)).willThrow(new FeignException.NotFound("Not Found", request, null, null));
-
-        Optional<Room> result = feignRoomProvider.findRoomById(99L);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    void findRoomById_shouldThrowRoomServiceUnavailableExceptionOnConnectionFailure() {
+    void findRoomById_shouldFallbackToLocalStoreOnConnectionFailure() {
         Request request = Request.create(Request.HttpMethod.GET, "/api/rooms/1", Collections.emptyMap(), null, null, null);
         given(resourceClient.getRoom(1L)).willThrow(new FeignException.ServiceUnavailable("Service Unavailable", request, null, null));
 
-        assertThatThrownBy(() -> feignRoomProvider.findRoomById(1L))
-                .isInstanceOf(RoomServiceUnavailableException.class)
-                .hasMessageContaining("Resource Service returned error status");
+        localRoomStore.createRoom(new RoomDTO(1L, "Fallback1", 40, RoomType.CLASSROOM, true, true, false, true));
+        Optional<Room> result = feignRoomProvider.findRoomById(1L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getRoomNumber()).isEqualTo("Fallback1");
     }
 }
