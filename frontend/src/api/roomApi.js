@@ -3,7 +3,10 @@
 
 import { BASE_URL } from './timetableApi.js';
 
-export const ROOM_BASE_URL = import.meta.env.VITE_RESOURCE_SERVICE_URL || BASE_URL;
+const rawRoomUrl = import.meta.env.VITE_RESOURCE_SERVICE_URL;
+export const ROOM_BASE_URL = rawRoomUrl
+  ? (rawRoomUrl.trim().replace(/\/+$/, '').endsWith('/api') ? rawRoomUrl.trim().replace(/\/+$/, '') : `${rawRoomUrl.trim().replace(/\/+$/, '')}/api`)
+  : BASE_URL;
 
 function getHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
