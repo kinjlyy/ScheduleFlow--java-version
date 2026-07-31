@@ -9,6 +9,8 @@ import SetupPage     from './pages/SetupPage.jsx';
 import ConstraintsPage from './pages/ConstraintsPage.jsx';
 import ReviewPage    from './pages/ReviewPage.jsx';
 import ResultPage    from './pages/ResultPage.jsx';
+import EventsPage    from './pages/EventsPage.jsx';
+import MyTimetablesPage from './pages/MyTimetablesPage.jsx';
 import { useSections }    from './hooks/useSections.js';
 import { useConstraints } from './hooks/useConstraints.js';
 import { generateTimetable } from './api/timetableApi.js';
@@ -20,7 +22,7 @@ const STEP_ORDER = ['constraints', 'setup', 'review', 'result'];
 
 export default function App() {
   // ── Top-level routing ───────────────────────────────────────────────────
-  // 'landing' | 'login' | 'dashboard' | 'builder'
+  // 'landing' | 'login' | 'dashboard' | 'builder' | 'events' | 'my-timetables'
   const [appView, setAppView]   = useState(() => localStorage.getItem('token') ? 'dashboard' : 'landing');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
   const [token, setToken]       = useState(() => localStorage.getItem('token') || '');

@@ -2,7 +2,7 @@
 import React from 'react';
 import styles from './DashboardHome.module.css';
 
-export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
+export default function DashboardHome({ userName, onNewTimetable, onManageEvents, onMyTimetables, onLogout }) {
   return (
     <div className={styles.root}>
       {/* ── Sidebar ── */}
@@ -11,7 +11,8 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
         <nav className={styles.sidebar_nav}>
           {[
             { icon: '', label: 'Dashboard',         active: true,  onClick: null },
-            { icon: '', label: 'Current Time Table', active: false, onClick: null },
+            { icon: '', label: 'Current Time Table', active: false, onClick: onMyTimetables },
+            { icon: '', label: 'Manage Events',     active: false, onClick: onManageEvents },
             { icon: '', label: 'Users',              active: false, onClick: null },
             { icon: '', label: 'Settings',           active: false, onClick: null },
           ].map(item => (
@@ -70,21 +71,21 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
             </div>
 
             {/* Manage Events */}
-            <div className={styles.action_card}>
+            <div className={styles.action_card} onClick={onManageEvents}>
               <div className={styles.action_icon_wrap} style={{background:'#e8eaf6'}}>
-                <span className={styles.action_icon}></span>
+                <span className={styles.action_icon}>🎉</span>
               </div>
               <h2 className={styles.action_title}>Manage Events</h2>
               <p className={styles.action_desc}>
                 Organize events, generate QR codes, and manage registrations
               </p>
-              <button className={styles.action_btn} style={{background:'#6366f1'}}>
+              <button className={styles.action_btn} style={{background:'#6366f1'}} onClick={onManageEvents}>
                 View Events →
               </button>
             </div>
 
             {/* My Timetables */}
-            <div className={styles.action_card}>
+            <div className={styles.action_card} onClick={onMyTimetables}>
               <div className={styles.action_icon_wrap} style={{background:'#fef3c7'}}>
                 <span className={styles.action_icon}>📋</span>
               </div>
@@ -92,7 +93,7 @@ export default function DashboardHome({ userName, onNewTimetable, onLogout }) {
               <p className={styles.action_desc}>
                 View and edit previously generated timetables for all sections
               </p>
-              <button className={styles.action_btn} style={{background:'#d97706'}}>
+              <button className={styles.action_btn} style={{background:'#d97706'}} onClick={onMyTimetables}>
                 View All →
               </button>
             </div>
