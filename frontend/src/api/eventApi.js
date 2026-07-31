@@ -191,3 +191,43 @@ export async function getTimetableById(id, token) {
   if (!res.ok) throw new Error(`Failed to fetch timetable #${id} (${res.status})`);
   return res.json();
 }
+
+export async function getLecturesByTimetableId(id, token) {
+  const res = await fetch(`${TIMETABLE_BASE}/${id}/lectures`, { headers: getHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to fetch lectures for timetable #${id}`);
+  return res.json();
+}
+
+export function lecturesToTimetableGrid(lectures) {
+  const timetable = {};
+  const sectionsSet = new Set();
+
+  if (Array.isArray(lectures)) {
+    lectures.forEach(l => {
+      const sec = l.sectionId || 'Section 1';
+      sectionsSet.add(sec);
+      let rawDay = l.day ? l.day.toLowerCase() : 'monday';
+      let day = rawDay.charAt(0).toUpperCase() + rawDay.slice(1);
+
+      if (!timetable[sec]) timetable[sec] = {};
+      if (!timetable[sec][day]) timetable[sec][day] = [];
+
+      const slot = l.lectureSlot != null ? l.lectureSlot : 0;
+      while (timetable[sec][day].length <= slot) {
+        timetable[sec][day].push({ free: true, subject: 'FREE', teacher: '' });
+      }
+
+      timetable[sec][day][slot] = {
+        free: false,
+        subject: l.subjectId || 'Subject',
+        teacher: l.teacherId || 'Teacher',
+        roomId: l.roomId,
+        roomNumber: l.roomNumber,
+        lectureType: l.lectureType
+      };
+    });
+  }
+
+  const sectionsList = Array.from(sectionsSet).map(sId => ({ id: sId, name: sId }));
+  return { timetable, sectionsList };
+}

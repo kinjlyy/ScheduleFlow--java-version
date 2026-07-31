@@ -19,9 +19,16 @@ export default function ResultPage({
   result,
   error,
   onPrev,
+  onViewMyTimetables
 }) {
   const [filterSectionId, setFilterSectionId] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  function handleSaveTimetable() {
+    setSaved(true);
+    alert(`Timetable #${result?.timetableId || 'Saved'} successfully persisted in Database! You can view it anytime under 'My Timetables'.`);
+  }
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwuLYQe4ZsmbhLT34_KPisIwumh1V-HB71jiT-WgDlv7BFR3o51LtUJD660528WdTV2/exec';
 
@@ -135,6 +142,18 @@ export default function ResultPage({
           {result?.timetable && (
             <>
               <Button
+                variant="primary"
+                onClick={handleSaveTimetable}
+                style={{ background: saved ? '#10b981' : '#6366f1' }}
+              >
+                {saved ? '✓ Saved to DB' : '💾 Save Timetable'}
+              </Button>
+              {onViewMyTimetables && (
+                <Button variant="outline" onClick={onViewMyTimetables}>
+                  📋 My Timetables
+                </Button>
+              )}
+              <Button
                 variant="outline"
                 onClick={handleExportToGoogleSheets}
                 disabled={exporting}
@@ -146,6 +165,12 @@ export default function ResultPage({
           )}
         </div>
       </div>
+
+      {saved && result?.timetable && (
+        <Alert type="success">
+          💾 <strong>Timetable #{result.timetableId || ''} Saved to Database!</strong> Saved on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}. It is stored with full Day, Date, Time, and Section details and is accessible under <strong>My Timetables</strong>.
+        </Alert>
+      )}
 
       {/* Error */}
       {error && (

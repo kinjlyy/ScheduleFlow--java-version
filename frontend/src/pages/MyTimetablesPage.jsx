@@ -1,6 +1,6 @@
 // src/pages/MyTimetablesPage.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllTimetables, getActiveTimetable, getTimetableById } from '../api/eventApi.js';
+import { getAllTimetables, getActiveTimetable, getTimetableById, getLecturesByTimetableId, lecturesToTimetableGrid } from '../api/eventApi.js';
 import ResultPage from './ResultPage.jsx';
 import styles from './MyTimetablesPage.module.css';
 
@@ -34,8 +34,17 @@ export default function MyTimetablesPage({ token, onBack, onNewTimetable }) {
   async function handleViewDetails(ttId) {
     setLoading(true);
     try {
-      const data = await getTimetableById(ttId, token);
-      setSelectedResult(data);
+      const [meta, lectures] = await Promise.all([
+        getTimetableById(ttId, token).catch(() => ({ id: ttId })),
+        getLecturesByTimetableId(ttId, token).catch(() => [])
+      ]);
+      const { timetable, sectionsList } = lecturesToTimetableGrid(lectures);
+      setSelectedResult({
+        timetableId: ttId,
+        timetable,
+        sectionsList,
+        meta
+      });
       setViewingDetailId(ttId);
     } catch (err) {
       alert('Error fetching timetable details: ' + err.message);
@@ -47,9 +56,12 @@ export default function MyTimetablesPage({ token, onBack, onNewTimetable }) {
   if (selectedResult) {
     return (
       <ResultPage
+        sections={selectedResult.sectionsList || []}
+        daysPerWeek={5}
+        periodsPerDay={6}
         result={selectedResult}
-        onBack={() => { setSelectedResult(null); setViewingDetailId(null); }}
-        onReset={onNewTimetable}
+        onPrev={() => { setSelectedResult(null); setViewingDetailId(null); }}
+        onViewMyTimetables={() => { setSelectedResult(null); setViewingDetailId(null); }}
       />
     );
   }

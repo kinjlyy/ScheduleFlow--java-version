@@ -321,6 +321,7 @@ export default function App() {
               onGenerate={handleGenerate}
               loading={loading} result={result} error={error}
               onPrev={goPrev}
+              onViewMyTimetables={() => setAppView('my-timetables')}
             />
           )}
         </main>
