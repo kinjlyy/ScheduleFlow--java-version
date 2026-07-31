@@ -4,6 +4,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# These VITE_ vars are baked into the JS bundle at build time by Vite.
+# Override them in Render's "Build Command" or Dockerfile if URLs change.
+ARG VITE_TIMETABLE_API_URL=https://scheduleflow-backend.onrender.com
+ARG VITE_EVENT_API_URL=https://scheduleflow-backend.onrender.com
+ENV VITE_TIMETABLE_API_URL=$VITE_TIMETABLE_API_URL
+ENV VITE_EVENT_API_URL=$VITE_EVENT_API_URL
+
 RUN npm run build
 
 # Run stage
@@ -14,7 +22,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # with envsubst and outputs to /etc/nginx/conf.d/
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Default Render backend URL fallback; override in Render Web Service environment variables if needed
+# This proxies /api/rooms/* → Resource Service. Timetable/Event go direct via JS.
 ENV API_GATEWAY_URL=https://scheduleflow-java-version-1.onrender.com
 
 EXPOSE 80

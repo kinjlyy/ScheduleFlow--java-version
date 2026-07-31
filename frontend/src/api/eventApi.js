@@ -3,8 +3,23 @@
 
 import { BASE_URL } from './timetableApi.js';
 
-export const EVENT_BASE = `${BASE_URL}/events`;
-export const TIMETABLE_BASE = `${BASE_URL}/timetables`;
+// ── Service base URLs ─────────────────────────────────────────────────────────
+// VITE_TIMETABLE_API_URL  → Render backend (handles /api/timetables, /api/generate)
+// VITE_EVENT_API_URL      → Render event service (handles /api/events)
+// Falls back to /api (proxied by nginx in production) for local dev
+
+function buildBase(envKey, fallbackPath) {
+  const raw = import.meta.env[envKey];
+  if (raw) {
+    const clean = raw.trim().replace(/\/+$/, '');
+    // If the env var already ends with /api, use as-is; otherwise append /api
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
+  }
+  return BASE_URL || fallbackPath;
+}
+
+export const TIMETABLE_BASE = `${buildBase('VITE_TIMETABLE_API_URL', '/api')}/timetables`;
+export const EVENT_BASE = `${buildBase('VITE_EVENT_API_URL', '/api')}/events`;
 
 function getHeaders(token) {
   const headers = { 'Content-Type': 'application/json' };
