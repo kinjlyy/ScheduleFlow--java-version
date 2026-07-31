@@ -1,10 +1,10 @@
 /* src/pages/FindRoomPage.module.css */
 .root {
   min-height: 100vh;
-  background: #0f172a;
-  color: #f8fafc;
-  padding: 2rem;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg, #f5ede6);
+  color: var(--text, #1a1a1a);
+  padding: 2.5rem 2rem;
+  font-family: var(--font-body, 'Inter', sans-serif);
 }
 
 .topbar {
@@ -15,50 +15,52 @@
 }
 
 .back_btn {
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
+  background: var(--white, #ffffff);
+  color: var(--text2, #444);
+  border: 1px solid var(--border, #e0d8d0);
   padding: 0.6rem 1.2rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 6px);
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.07));
+  transition: all 0.15s ease;
 }
 
 .back_btn:hover {
-  background: #334155;
-  color: #ffffff;
+  background: var(--bg2, #ede4dc);
+  color: var(--text, #1a1a1a);
 }
 
 .title {
+  font-family: var(--font-display, 'Inter', sans-serif);
   font-size: 1.8rem;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0;
-  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--teal, #0ABFBC);
 }
 
 .subtitle {
-  color: #94a3b8;
+  color: var(--muted, #888);
   margin: 0.2rem 0 0 0;
   font-size: 0.95rem;
 }
 
 .filter_card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border, #e0d8d0);
+  border-radius: var(--radius, 12px);
+  padding: 1.8rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.07));
 }
 
 .filter_heading {
+  font-family: var(--font-display, 'Inter', sans-serif);
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   font-size: 1.1rem;
-  color: #e2e8f0;
+  font-weight: 700;
+  color: var(--text, #1a1a1a);
 }
 
 .filter_grid {
@@ -72,62 +74,62 @@
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .form_group label {
   font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
+  font-weight: 700;
+  color: var(--text2, #444);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .select_input {
-  background: #0f172a;
-  border: 1px solid #475569;
-  color: #f8fafc;
+  background: var(--bg, #f5ede6);
+  border: 1px solid var(--border, #e0d8d0);
+  color: var(--text, #1a1a1a);
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 6px);
   font-size: 1rem;
+  font-weight: 500;
   outline: none;
 }
 
 .select_input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--teal, #0ABFBC);
+  box-shadow: 0 0 0 3px rgba(10, 191, 188, 0.2);
 }
 
 .active_tt_badge {
   margin-top: 1.2rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #34d399;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
+  background: var(--teal-light, #e0f7f7);
+  border: 1px solid var(--teal-mid, #b2ebea);
+  color: var(--teal-dark, #089a97);
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius-sm, 6px);
   font-size: 0.9rem;
 }
 
 .warn_tt_badge {
   margin-top: 1.2rem;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
+  background: var(--warn-bg, #fffbeb);
+  border: 1px solid var(--warn-border, #fde68a);
+  color: var(--warn-text, #92400e);
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--radius-sm, 6px);
   font-size: 0.9rem;
 }
 
-.loading_box, .error_box, .success_box {
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
+.loading_box, .error_box {
+  padding: 1.2rem 1.5rem;
+  border-radius: var(--radius-sm, 6px);
   margin-bottom: 1.5rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.loading_box { background: #1e293b; color: #38bdf8; }
-.error_box { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
-.success_box { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #6ee7b7; }
+.loading_box { background: var(--white); color: var(--teal); border: 1px solid var(--border); }
+.error_box { background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); }
 
 .results_container {
   display: flex;
@@ -136,66 +138,68 @@
 }
 
 .section_card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--white, #ffffff);
+  border: 1px solid var(--border, #e0d8d0);
+  border-radius: var(--radius, 12px);
+  padding: 1.8rem;
+  box-shadow: var(--shadow-sm, 0 1px 4px rgba(0,0,0,0.07));
 }
 
 .section_header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.4rem;
 }
 
 .section_header h2 {
-  font-size: 1.3rem;
+  font-family: var(--font-display, 'Inter', sans-serif);
+  font-size: 1.25rem;
+  font-weight: 800;
   margin: 0;
 }
 
-.text_success { color: #34d399; }
-.text_danger { color: #f87171; }
+.text_success { color: var(--success, #059669); }
+.text_danger { color: var(--danger, #e05252); }
 
 .subtext {
-  color: #94a3b8;
-  font-size: 0.9rem;
+  color: var(--muted, #888);
+  font-size: 0.88rem;
 }
 
 .empty_box {
-  padding: 2rem;
+  padding: 2.5rem;
   text-align: center;
-  color: #64748b;
-  background: #0f172a;
-  border-radius: 8px;
+  color: var(--muted, #888);
+  background: var(--bg, #f5ede6);
+  border-radius: var(--radius-sm, 6px);
   font-style: italic;
 }
 
 .room_grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.2rem;
 }
 
 .room_card_free {
-  background: #0f172a;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 10px;
-  padding: 1.2rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius, 12px);
+  padding: 1.3rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .room_card_free:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.12);
 }
 
 .room_card_busy {
-  background: #0f172a;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 10px;
-  padding: 1.2rem;
-  opacity: 0.85;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius, 12px);
+  padding: 1.3rem;
 }
 
 .room_card_header {
@@ -206,42 +210,45 @@
 }
 
 .room_num {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #f8fafc;
+  font-family: var(--font-display, 'Inter', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text, #1a1a1a);
 }
 
 .badge_free {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
+  background: #d1fae5;
+  color: #047857;
   font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+  letter-spacing: 0.05em;
 }
 
 .badge_busy {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  background: #fee2e2;
+  color: #b91c1c;
   font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 99px;
+  letter-spacing: 0.05em;
 }
 
 .room_details {
   font-size: 0.9rem;
-  color: #cbd5e1;
+  color: var(--text2, #444);
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
 .occ_info {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #334155;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #fca5a5;
   font-size: 0.85rem;
-  color: #94a3b8;
-  line-height: 1.4;
+  color: #7f1d1d;
+  line-height: 1.5;
 }

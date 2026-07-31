@@ -9,8 +9,10 @@ COPY . .
 # Override them in Render's "Build Command" or Dockerfile if URLs change.
 ARG VITE_TIMETABLE_API_URL=https://scheduleflow-backend.onrender.com
 ARG VITE_EVENT_API_URL=https://scheduleflow-java-version-2.onrender.com
+ARG VITE_RESOURCE_SERVICE_URL=https://scheduleflow-java-version-1.onrender.com
 ENV VITE_TIMETABLE_API_URL=$VITE_TIMETABLE_API_URL
 ENV VITE_EVENT_API_URL=$VITE_EVENT_API_URL
+ENV VITE_RESOURCE_SERVICE_URL=$VITE_RESOURCE_SERVICE_URL
 
 RUN npm run build
 
