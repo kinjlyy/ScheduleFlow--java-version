@@ -218,6 +218,8 @@ export default function App() {
       <DashboardHome
         userName={userName}
         onNewTimetable={openBuilder}
+        onManageEvents={() => setAppView('events')}
+        onMyTimetables={() => setAppView('my-timetables')}
         onLogout={handleLogout}
       />
     );
