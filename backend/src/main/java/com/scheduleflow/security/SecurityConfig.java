@@ -44,14 +44,16 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints — health, auth, actuator, timetable generation
+                // Public endpoints — health, auth, actuator, timetable generation & viewing
                 .requestMatchers(
                     "/",
                     "/actuator/health",
                     "/actuator/info",
                     "/api/auth/**",
                     "/api/health",
-                    "/api/generate"
+                    "/api/generate",
+                    "/api/timetables",
+                    "/api/timetables/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
