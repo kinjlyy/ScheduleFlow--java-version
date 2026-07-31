@@ -225,6 +225,26 @@ export default function App() {
     );
   }
 
+  if (appView === 'events') {
+    return (
+      <EventsPage
+        token={token}
+        onBack={() => setAppView('dashboard')}
+        onTimetableRefreshed={() => {}}
+      />
+    );
+  }
+
+  if (appView === 'my-timetables') {
+    return (
+      <MyTimetablesPage
+        token={token}
+        onBack={() => setAppView('dashboard')}
+        onNewTimetable={openBuilder}
+      />
+    );
+  }
+
   // ── Timetable builder ────────────────────────────────────────────────────
   return (
     <div className={styles.app_root}>
