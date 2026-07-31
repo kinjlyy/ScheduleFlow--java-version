@@ -201,6 +201,12 @@ export async function getActiveTimetable(token) {
   return res.json();
 }
 
+export async function getActiveLectures(token) {
+  const res = await fetch(`${TIMETABLE_BASE}/active/lectures`, { headers: getHeaders(token) });
+  if (!res.ok) throw new Error(`Failed to fetch active lectures (${res.status})`);
+  return res.json();
+}
+
 export async function getTimetableById(id, token) {
   const res = await fetch(`${TIMETABLE_BASE}/${id}`, { headers: getHeaders(token) });
   if (!res.ok) throw new Error(`Failed to fetch timetable #${id} (${res.status})`);

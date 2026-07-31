@@ -318,41 +318,81 @@ public class TimetableService {
 
     @Transactional
     public TimetableExecutionResultDTO executeEventImpact(Long timetableId, TimetableExecutionRequest request) {
-        Timetable timetable = timetableRepository.findById(timetableId)
+        // ── 1. Load the source (original) timetable ─────────────────────────
+        Timetable sourceTimetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Timetable", timetableId));
 
+        // ── 2. Create a COPY — original is NEVER modified ───────────────────
+        String eventTag = request.getEventId() != null ? " (Event #" + request.getEventId() + ")" : "";
+        Timetable copy = new Timetable();
+        copy.setName("Copy of TT #" + timetableId + eventTag);
+        copy.setSemester(sourceTimetable.getSemester());
+        copy.setAcademicYear(sourceTimetable.getAcademicYear());
+        copy.setGeneratedAt(LocalDateTime.now());
+        copy.setGeneratedBy(request.getExecutedBy() != null ? request.getExecutedBy() : "system");
+        copy.setStatus(TimetableStatus.GENERATING);
+        copy.setCreatedAt(LocalDateTime.now());
+        copy = timetableRepository.save(copy);
+
+        // ── 3. Clone ALL lectures from source into the copy ──────────────────
+        List<Lecture> sourceLectures = lectureRepository.findByTimetableId(sourceTimetable.getId());
+        List<Lecture> clonedLectures = new ArrayList<>();
+        for (Lecture src : sourceLectures) {
+            Lecture clone = new Lecture(
+                    copy,
+                    src.getSectionId(),
+                    src.getSubjectId(),
+                    src.getTeacherId(),
+                    src.getRoomId(),
+                    src.getRoomNumber(),
+                    src.getDay(),
+                    src.getLectureSlot(),
+                    src.getLectureType(),
+                    LocalDateTime.now()
+            );
+            clonedLectures.add(clone);
+        }
+        clonedLectures = lectureRepository.saveAll(clonedLectures);
+
+        // Build a map: original lecture ID -> cloned lecture (for affected-ID lookup)
+        Map<Long, Lecture> originalToClone = new HashMap<>();
+        for (int i = 0; i < sourceLectures.size(); i++) {
+            originalToClone.put(sourceLectures.get(i).getId(), clonedLectures.get(i));
+        }
+
+        // ── 4. Resolve which CLONED lectures correspond to affected IDs ──────
         List<Long> affectedIds = request.getAffectedLectureIds() != null ? request.getAffectedLectureIds() : List.of();
-        List<Lecture> targetLectures = lectureRepository.findAllById(affectedIds).stream()
-                .filter(l -> l.getTimetable().getId().equals(timetable.getId()))
-                .toList();
+        List<Lecture> targetLectures = affectedIds.stream()
+                .map(originalToClone::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
         List<Long> rescheduledIds = new ArrayList<>();
-        List<Long> cancelledIds = new ArrayList<>();
-        List<String> warnings = new ArrayList<>();
+        List<Long> cancelledIds   = new ArrayList<>();
+        List<String> warnings     = new ArrayList<>();
 
         String strategy = request.getExecutionStrategy() != null ? request.getExecutionStrategy() : "CANCEL_ALL";
 
+        // ── 5. Apply strategy on the COPY's lectures ─────────────────────────
         if ("CANCEL_ALL".equalsIgnoreCase(strategy)) {
             for (Lecture l : targetLectures) {
                 cancelledIds.add(l.getId());
                 lectureRepository.delete(l);
             }
         } else if ("RESCHEDULE_AND_CANCEL".equalsIgnoreCase(strategy)) {
-            // All existing lectures in this timetable version for collision checking
-            List<Lecture> allLectures = lectureRepository.findByTimetableId(timetable.getId());
-            Set<String> takenSlots = allLectures.stream()
+            List<Lecture> allCopyLectures = lectureRepository.findByTimetableId(copy.getId());
+            Set<String> takenSlots = allCopyLectures.stream()
                     .map(l -> l.getDay() + ":" + l.getLectureSlot() + ":" + l.getSectionId())
                     .collect(Collectors.toSet());
 
             for (Lecture l : targetLectures) {
                 if (l.getLectureType() == LectureType.LAB) {
-                    warnings.add("Laboratory lecture " + l.getSubjectId() + " (Section " + l.getSectionId() + ") cannot be rescheduled — cancelled.");
+                    warnings.add("Lab lecture " + l.getSubjectId() + " (Section " + l.getSectionId() + ") cannot be rescheduled — cancelled.");
                     cancelledIds.add(l.getId());
                     lectureRepository.delete(l);
                     continue;
                 }
 
-                // Try finding an alternative slot (periods 1..6 on any weekday)
                 boolean rescheduled = false;
                 for (String day : DAYS) {
                     for (int slot = 1; slot <= 6; slot++) {
@@ -371,15 +411,22 @@ public class TimetableService {
                 }
 
                 if (!rescheduled) {
-                    warnings.add("No free slot available for " + l.getSubjectId() + " (Section " + l.getSectionId() + ") — cancelled.");
+                    warnings.add("No free slot for " + l.getSubjectId() + " (Section " + l.getSectionId() + ") — cancelled.");
                     cancelledIds.add(l.getId());
                     lectureRepository.delete(l);
                 }
             }
         }
 
-        String summary = String.format("Execution completed for strategy %s: %d rescheduled, %d cancelled.",
-                strategy, rescheduledIds.size(), cancelledIds.size());
+        // ── 6. Activate copy, archive source (original untouched data-wise, status only changes) ──
+        copy.setStatus(TimetableStatus.ACTIVE);
+        timetableRepository.save(copy);
+        sourceTimetable.setStatus(TimetableStatus.ARCHIVED);
+        timetableRepository.save(sourceTimetable);
+
+        String summary = String.format(
+                "Execution complete — strategy: %s. New TT #%d created (copy of TT #%d). %d rescheduled, %d cancelled. Original TT #%d archived.",
+                strategy, copy.getId(), timetableId, rescheduledIds.size(), cancelledIds.size(), timetableId);
 
         return new TimetableExecutionResultDTO(
                 "SUCCESS", summary, rescheduledIds.size(), cancelledIds.size(),

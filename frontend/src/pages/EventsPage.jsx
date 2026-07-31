@@ -4,7 +4,7 @@ import {
   getAllEvents, createEvent, updateEvent, deleteEvent, getEventById,
   reserveRoom, cancelReservation, checkAvailability, getReservations,
   generateImpactAnalysis, generateExecutionPlan, executeStrategy, getExecutionHistory,
-  getAllTimetables
+  getAllTimetables, getActiveTimetable
 } from '../api/eventApi.js';
 import { fetchRooms } from '../api/roomApi.js';
 import styles from './EventsPage.module.css';
@@ -87,16 +87,20 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
   const loadData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [evList, resList, roomList, ttList] = await Promise.all([
+      const [evList, resList, roomList, ttList, activeTt] = await Promise.all([
         getAllEvents(token).catch(() => []),
         getReservations({}, token).catch(() => []),
         fetchRooms(token).catch(() => []),
-        getAllTimetables(token).catch(() => [])
+        getAllTimetables(token).catch(() => []),
+        getActiveTimetable(token).catch(() => null)
       ]);
       setEvents(evList);
       setReservations(resList);
       setRooms(roomList);
       setTimetables(ttList);
+      if (activeTt?.id) {
+        setImpactTimetableId(String(activeTt.id));
+      }
     } catch (e) {
       setError(e.message);
     } finally {

@@ -11,6 +11,7 @@ import ReviewPage    from './pages/ReviewPage.jsx';
 import ResultPage    from './pages/ResultPage.jsx';
 import EventsPage    from './pages/EventsPage.jsx';
 import MyTimetablesPage from './pages/MyTimetablesPage.jsx';
+import FindRoomPage  from './pages/FindRoomPage.jsx';
 import { useSections }    from './hooks/useSections.js';
 import { useConstraints } from './hooks/useConstraints.js';
 import { generateTimetable } from './api/timetableApi.js';
@@ -220,6 +221,7 @@ export default function App() {
         onNewTimetable={openBuilder}
         onManageEvents={() => setAppView('events')}
         onMyTimetables={() => setAppView('my-timetables')}
+        onFindRoom={() => setAppView('find-room')}
         onLogout={handleLogout}
       />
     );
@@ -241,6 +243,15 @@ export default function App() {
         token={token}
         onBack={() => setAppView('dashboard')}
         onNewTimetable={openBuilder}
+      />
+    );
+  }
+
+  if (appView === 'find-room') {
+    return (
+      <FindRoomPage
+        token={token}
+        onBack={() => setAppView('dashboard')}
       />
     );
   }

@@ -2,7 +2,7 @@
 import React from 'react';
 import styles from './DashboardHome.module.css';
 
-export default function DashboardHome({ userName, onNewTimetable, onManageEvents, onMyTimetables, onLogout }) {
+export default function DashboardHome({ userName, onNewTimetable, onManageEvents, onMyTimetables, onFindRoom, onLogout }) {
   return (
     <div className={styles.root}>
       {/* ── Sidebar ── */}
@@ -10,11 +10,11 @@ export default function DashboardHome({ userName, onNewTimetable, onManageEvents
         <div className={styles.sidebar_logo}>ScheduleFlow</div>
         <nav className={styles.sidebar_nav}>
           {[
-            { icon: '', label: 'Dashboard',         active: true,  onClick: null },
-            { icon: '', label: 'Current Time Table', active: false, onClick: onMyTimetables },
-            { icon: '', label: 'Manage Events',     active: false, onClick: onManageEvents },
-            { icon: '', label: 'Users',              active: false, onClick: null },
-            { icon: '', label: 'Settings',           active: false, onClick: null },
+            { icon: '🏠', label: 'Dashboard',         active: true,  onClick: null },
+            { icon: '📋', label: 'Current Time Table', active: false, onClick: onMyTimetables },
+            { icon: '🎉', label: 'Manage Events',     active: false, onClick: onManageEvents },
+            { icon: '🔍', label: 'Find Free Room',    active: false, onClick: onFindRoom },
+            { icon: '⚙️', label: 'Settings',           active: false, onClick: null },
           ].map(item => (
             <button
               key={item.label}
@@ -95,6 +95,20 @@ export default function DashboardHome({ userName, onNewTimetable, onManageEvents
               </p>
               <button className={styles.action_btn} style={{background:'#d97706'}} onClick={onMyTimetables}>
                 View All →
+              </button>
+            </div>
+
+            {/* Find Free Room */}
+            <div className={styles.action_card} onClick={onFindRoom}>
+              <div className={styles.action_icon_wrap} style={{background:'#dcfce7'}}>
+                <span className={styles.action_icon}>🔍</span>
+              </div>
+              <h2 className={styles.action_title}>Find Free Room</h2>
+              <p className={styles.action_desc}>
+                Search for available rooms at any day and period based on active timetable
+              </p>
+              <button className={styles.action_btn} style={{background:'#16a34a'}} onClick={onFindRoom}>
+                Find Room →
               </button>
             </div>
           </div>
