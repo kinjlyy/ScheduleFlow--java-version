@@ -343,7 +343,7 @@ class ReservationServiceTest {
                 .thenReturn(List.of(booking));
 
         // Query slot P3-P5 conflicts with P2-P4
-        AvailabilityResponse response = eventService.checkAvailability(date, 3, 5);
+        AvailabilityResponse response = eventService.checkAvailability(date, 3, 5, null);
 
         assertNotNull(response);
         assertEquals(date, response.getDate());
