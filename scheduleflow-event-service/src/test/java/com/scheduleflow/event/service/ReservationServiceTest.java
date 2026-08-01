@@ -3,6 +3,7 @@ package com.scheduleflow.event.service;
 import com.scheduleflow.event.client.ResourceServiceClient;
 import com.scheduleflow.event.dto.*;
 import com.scheduleflow.event.entity.Event;
+import com.scheduleflow.event.enums.EventCategory;
 import com.scheduleflow.event.enums.EventStatus;
 import com.scheduleflow.event.enums.EventType;
 import com.scheduleflow.event.enums.LocationType;
