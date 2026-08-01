@@ -242,7 +242,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod) {
-        log.debug("Checking availability for date={}, periods={}-{}", date, startPeriod, endPeriod);
+        log.debug("Checking multi-source availability for date={}, periods={}-{}", date, startPeriod, endPeriod);
 
         if (date == null) {
             throw new ValidationException("Date parameter is required for availability check");
@@ -251,30 +251,86 @@ public class EventServiceImpl implements EventService {
 
         List<RoomResponse> activeRooms = resourceServiceClient.getActiveRooms();
 
-        List<Event> dailyReservations = eventRepository.findByDateAndEventCategoryAndStatusNot(
-                date, EventCategory.ROOM_RESERVATION, EventStatus.CANCELLED);
-
-        Map<Long, List<Event>> reservationsByRoom = dailyReservations.stream()
+        // Source 1: Event Service Scheduled Events & Room Reservations on this Date
+        List<Event> dailyEvents = eventRepository.findByDateAndStatusNot(date, EventStatus.CANCELLED);
+        Map<Long, List<Event>> eventsByRoomId = dailyEvents.stream()
                 .filter(e -> e.getLocationId() != null)
                 .collect(Collectors.groupingBy(Event::getLocationId));
+
+        // Source 2: Timetable Service Active Lectures on this Day of Week
+        String dayOfWeek = date.getDayOfWeek().name(); // e.g. TUESDAY
+        java.util.Set<Long> timetableOccupiedRoomIds = new java.util.HashSet<>();
+        java.util.Set<String> timetableOccupiedRoomNumbers = new java.util.HashSet<>();
+
+        try {
+            List<Map<String, Object>> activeLectures = timetableServiceClient.getActiveLectures();
+            if (activeLectures != null) {
+                for (Map<String, Object> lec : activeLectures) {
+                    Object lecDay = lec.get("day");
+                    Object lecSlotObj = lec.get("lectureSlot");
+                    Object roomIdObj = lec.get("roomId");
+                    Object roomNumObj = lec.get("roomNumber");
+
+                    if (lecDay != null && lecSlotObj != null) {
+                        String dayStr = lecDay.toString().trim();
+                        int slot = Integer.parseInt(lecSlotObj.toString());
+
+                        // Handle both 0-indexed (0..5) and 1-indexed (1..6) lecture slots
+                        int period1 = slot + 1; // if 0-indexed
+                        int period2 = slot;     // if 1-indexed
+
+                        boolean periodMatches = (period1 >= startPeriod && period1 <= endPeriod)
+                                             || (period2 >= startPeriod && period2 <= endPeriod);
+
+                        if (dayStr.equalsIgnoreCase(dayOfWeek) && periodMatches) {
+                            if (roomIdObj != null) {
+                                try {
+                                    timetableOccupiedRoomIds.add(Long.valueOf(roomIdObj.toString()));
+                                } catch (NumberFormatException ignored) {}
+                            }
+                            if (roomNumObj != null) {
+                                timetableOccupiedRoomNumbers.add(roomNumObj.toString().trim().toUpperCase());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Could not query active timetable lectures for availability check: {}", ex.getMessage());
+        }
 
         List<RoomAvailabilityInfo> availableRooms = new ArrayList<>();
         List<RoomAvailabilityInfo> reservedRooms = new ArrayList<>();
 
         for (RoomResponse room : activeRooms) {
-            List<Event> roomBookings = reservationsByRoom.getOrDefault(room.getId(), List.of());
+            List<Event> roomBookings = eventsByRoomId.getOrDefault(room.getId(), List.of());
 
-            List<OccupiedPeriod> occupiedPeriods = roomBookings.stream()
+            List<OccupiedPeriod> occupiedPeriods = new ArrayList<>(roomBookings.stream()
                     .map(b -> new OccupiedPeriod(b.getId(), b.getTitle(), b.getStartPeriod(), b.getEndPeriod(), b.getStatus()))
-                    .toList();
+                    .toList());
 
-            boolean hasSlotConflict = roomBookings.stream().anyMatch(b ->
+            boolean hasEventConflict = roomBookings.stream().anyMatch(b ->
                     b.getStartPeriod() <= endPeriod && b.getEndPeriod() >= startPeriod
             );
 
-            RoomAvailabilityInfo info = new RoomAvailabilityInfo(room, !hasSlotConflict, occupiedPeriods);
+            boolean hasTimetableConflict = timetableOccupiedRoomIds.contains(room.getId())
+                    || (room.getRoomNumber() != null && timetableOccupiedRoomNumbers.contains(room.getRoomNumber().trim().toUpperCase()));
 
-            if (hasSlotConflict) {
+            boolean isReserved = hasEventConflict || hasTimetableConflict;
+
+            if (hasTimetableConflict) {
+                occupiedPeriods.add(new OccupiedPeriod(
+                        null,
+                        "Active Timetable Lecture",
+                        startPeriod,
+                        endPeriod,
+                        EventStatus.SCHEDULED
+                ));
+            }
+
+            RoomAvailabilityInfo info = new RoomAvailabilityInfo(room, !isReserved, occupiedPeriods);
+
+            if (isReserved) {
                 reservedRooms.add(info);
             } else {
                 availableRooms.add(info);
