@@ -34,6 +34,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, "Resource Not Found", ex.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        log.warn("No static/controller resource found: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "Resource Not Found", ex.getMessage());
+    }
+
     // ── ReservationConflictException ──────────────────────────────────────────
 
     @ExceptionHandler(ReservationConflictException.class)
