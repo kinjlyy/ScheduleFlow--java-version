@@ -76,7 +76,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
       } else {
         // Timetable selected -> query availability endpoint for specified slot if date is present
         if (date && startP && endP) {
-          const avail = await checkAvailability(date, Number(startP), Number(endP), token).catch(() => null);
+          const avail = await checkAvailability(date, Number(startP), Number(endP), ttId, token).catch(() => null);
           if (avail && Array.isArray(avail.availableRooms)) {
             const availList = avail.availableRooms.map(item => item.room || item);
             setModalRooms(availList);

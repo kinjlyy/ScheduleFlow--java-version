@@ -121,9 +121,10 @@ export async function cancelReservation(id, token) {
   return true;
 }
 
-export async function checkAvailability(date, startPeriod, endPeriod, token) {
-  const query = `date=${date}&startPeriod=${startPeriod}&endPeriod=${endPeriod}`;
-  const res = await fetch(`${EVENT_BASE}/availability?${query}`, { headers: getHeaders(token) });
+export async function checkAvailability(date, startPeriod, endPeriod, timetableId, token) {
+  const params = new URLSearchParams({ date, startPeriod, endPeriod });
+  if (timetableId) params.append('timetableId', timetableId);
+  const res = await fetch(`${EVENT_BASE}/availability?${params.toString()}`, { headers: getHeaders(token) });
   if (!res.ok) throw new Error(`Availability check failed (${res.status})`);
   return res.json();
 }
