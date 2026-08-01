@@ -56,6 +56,12 @@ public class Lecture {
     @Column(name = "lecture_type", nullable = false)
     private LectureType lectureType = LectureType.THEORY;
 
+    @Column(name = "event_id")
+    private Long eventId;
+
+    @Column(name = "event_name")
+    private String eventName;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -105,6 +111,12 @@ public class Lecture {
 
     public LectureType getLectureType() { return lectureType; }
     public void setLectureType(LectureType lectureType) { this.lectureType = lectureType; }
+
+    public Long getEventId() { return eventId; }
+    public void setEventId(Long eventId) { this.eventId = eventId; }
+
+    public String getEventName() { return eventName; }
+    public void setEventName(String eventName) { this.eventName = eventName; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

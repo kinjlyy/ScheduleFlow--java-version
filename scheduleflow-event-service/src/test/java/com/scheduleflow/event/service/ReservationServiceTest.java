@@ -3,7 +3,6 @@ package com.scheduleflow.event.service;
 import com.scheduleflow.event.client.ResourceServiceClient;
 import com.scheduleflow.event.dto.*;
 import com.scheduleflow.event.entity.Event;
-import com.scheduleflow.event.enums.EventCategory;
 import com.scheduleflow.event.enums.EventStatus;
 import com.scheduleflow.event.enums.EventType;
 import com.scheduleflow.event.enums.LocationType;
@@ -339,8 +338,8 @@ class ReservationServiceTest {
         booking.setEndPeriod(4);
         booking.setStatus(EventStatus.SCHEDULED);
 
-        when(eventRepository.findByDateAndEventCategoryAndStatusNot(
-                date, EventCategory.ROOM_RESERVATION, EventStatus.CANCELLED))
+        // Stub the multi-source date-based query used by checkAvailability
+        when(eventRepository.findByDateAndStatusNot(date, EventStatus.CANCELLED))
                 .thenReturn(List.of(booking));
 
         // Query slot P3-P5 conflicts with P2-P4

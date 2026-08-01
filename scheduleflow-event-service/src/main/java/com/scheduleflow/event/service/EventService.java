@@ -31,7 +31,16 @@ public interface EventService {
 
     ReservationResponse reserveRoom(CreateReservationRequest request);
     void cancelReservation(Long id);
-    AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod);
+    /**
+     * Checks room availability for a given date and period range.
+     *
+     * @param date        the calendar date (used to derive day-of-week)
+     * @param startPeriod 1-indexed start period
+     * @param endPeriod   1-indexed end period
+     * @param timetableId optional — if provided, occupied rooms are derived from this specific timetable's lectures;
+     *                    if null, falls back to the active timetable
+     */
+    AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod, Long timetableId);
     List<ReservationResponse> getReservations(LocalDate date, Long locationId, EventStatus status);
 
     // ── Phase 7C Academic Event Scheduling & Impact Operations ────────────────

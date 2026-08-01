@@ -54,6 +54,26 @@ public class LectureController {
         return ResponseEntity.ok(timetableService.getLecturesByDay(id, day));
     }
 
+    /**
+     * Returns the distinct room IDs that are occupied (have a lecture) in a specific
+     * timetable, on a given day, within the requested period range.
+     *
+     * <p>Periods are 1-indexed. Example:
+     * <pre>GET /api/timetables/20/occupied-rooms?day=MONDAY&amp;startPeriod=3&amp;endPeriod=5</pre>
+     * returns all room IDs that have at least one lecture on Monday in periods 3, 4, or 5
+     * for timetable #20.
+     *
+     * <p>Used by EVENT-SERVICE to compute available rooms without a separate occupancy table.
+     */
+    @GetMapping("/timetables/{id}/occupied-rooms")
+    public ResponseEntity<List<Long>> getOccupiedRoomIds(
+            @PathVariable Long id,
+            @RequestParam String day,
+            @RequestParam int startPeriod,
+            @RequestParam int endPeriod) {
+        return ResponseEntity.ok(timetableService.getOccupiedRoomIds(id, day, startPeriod, endPeriod));
+    }
+
     // ── Active Timetable Convenience Queries ─────────────────────────────────
 
     @GetMapping("/timetables/active/lectures")

@@ -2,7 +2,7 @@
 import React from 'react';
 import styles from './DashboardHome.module.css';
 
-export default function DashboardHome({ userName, onNewTimetable, onManageEvents, onMyTimetables, onFindRoom, onManageRooms, onLogout }) {
+export default function DashboardHome({ userName, onNewTimetable, onManageEvents, onMyTimetables, onFindRoom, onLogout }) {
   return (
     <div className={styles.root}>
       {/* ── Sidebar ── */}
@@ -10,12 +10,11 @@ export default function DashboardHome({ userName, onNewTimetable, onManageEvents
         <div className={styles.sidebar_logo}>ScheduleFlow</div>
         <nav className={styles.sidebar_nav}>
           {[
-            { icon: '🏠', label: 'Dashboard',          active: true,  onClick: null },
-            { icon: '📋', label: 'Current Time Table',  active: false, onClick: onMyTimetables },
-            { icon: '🎉', label: 'Manage Events',       active: false, onClick: onManageEvents },
-            { icon: '🏠', label: 'Manage Rooms',        active: false, onClick: onManageRooms },
-            { icon: '🔍', label: 'Find Free Room',      active: false, onClick: onFindRoom },
-            { icon: '⚙️', label: 'Settings',             active: false, onClick: null },
+            { icon: '🏠', label: 'Dashboard',         active: true,  onClick: null },
+            { icon: '📋', label: 'Current Time Table', active: false, onClick: onMyTimetables },
+            { icon: '🎉', label: 'Manage Events',     active: false, onClick: onManageEvents },
+            { icon: '🔍', label: 'Find Free Room',    active: false, onClick: onFindRoom },
+            { icon: '⚙️', label: 'Settings',           active: false, onClick: null },
           ].map(item => (
             <button
               key={item.label}
@@ -110,20 +109,6 @@ export default function DashboardHome({ userName, onNewTimetable, onManageEvents
               </p>
               <button className={styles.action_btn} style={{background:'#16a34a'}} onClick={onFindRoom}>
                 Find Room →
-              </button>
-            </div>
-
-            {/* Manage Rooms */}
-            <div className={styles.action_card} onClick={onManageRooms}>
-              <div className={styles.action_icon_wrap} style={{background:'#fce7f3'}}>
-                <span className={styles.action_icon}>🏠</span>
-              </div>
-              <h2 className={styles.action_title}>Manage Rooms</h2>
-              <p className={styles.action_desc}>
-                Add, edit and manage classroom inventory stored in the Resource Service
-              </p>
-              <button className={styles.action_btn} style={{background:'#db2777'}} onClick={onManageRooms}>
-                Manage →
               </button>
             </div>
           </div>

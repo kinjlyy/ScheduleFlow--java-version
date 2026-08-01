@@ -12,7 +12,6 @@ import ResultPage    from './pages/ResultPage.jsx';
 import EventsPage    from './pages/EventsPage.jsx';
 import MyTimetablesPage from './pages/MyTimetablesPage.jsx';
 import FindRoomPage  from './pages/FindRoomPage.jsx';
-import ManageRoomsPage from './pages/ManageRoomsPage.jsx';
 import { useSections }    from './hooks/useSections.js';
 import { useConstraints } from './hooks/useConstraints.js';
 import { generateTimetable } from './api/timetableApi.js';
@@ -24,12 +23,10 @@ const STEP_ORDER = ['constraints', 'setup', 'review', 'result'];
 
 export default function App() {
   // ── Top-level routing ───────────────────────────────────────────────────
-  // 'landing' | 'login' | 'dashboard' | 'builder' | 'events' | 'my-timetables' | 'manage-rooms'
-  const [appView, setAppView]         = useState(() => localStorage.getItem('token') ? 'dashboard' : 'landing');
-  const [userName, setUserName]       = useState(() => localStorage.getItem('userName') || '');
-  const [token, setToken]             = useState(() => localStorage.getItem('token') || '');
-  // Where to return after ManageRoomsPage Continue is clicked
-  const [roomsReturnView, setRoomsReturnView] = useState('dashboard');
+  // 'landing' | 'login' | 'dashboard' | 'builder' | 'events' | 'my-timetables'
+  const [appView, setAppView]   = useState(() => localStorage.getItem('token') ? 'dashboard' : 'landing');
+  const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
+  const [token, setToken]       = useState(() => localStorage.getItem('token') || '');
 
   // ── Room Management State ────────────────────────────────────────────────
   const [manageRooms, setManageRooms] = useState(false);
@@ -225,26 +222,7 @@ export default function App() {
         onManageEvents={() => setAppView('events')}
         onMyTimetables={() => setAppView('my-timetables')}
         onFindRoom={() => setAppView('find-room')}
-        onManageRooms={() => { setRoomsReturnView('dashboard'); setAppView('manage-rooms'); }}
         onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (appView === 'manage-rooms') {
-    return (
-      <ManageRoomsPage
-        rooms={rooms}
-        roomSummary={roomSummary}
-        onAddRoom={handleAddRoom}
-        onUpdateRoom={handleUpdateRoom}
-        onDeleteRoom={handleDeleteRoom}
-        onContinue={() => setAppView(roomsReturnView)}
-        continueLabel={
-          roomsReturnView === 'builder'
-            ? 'Continue TT Generation →'
-            : '← Back to Dashboard'
-        }
       />
     );
   }
@@ -308,7 +286,9 @@ export default function App() {
               manageRooms={manageRooms} setManageRooms={setManageRooms}
               rooms={rooms}
               roomSummary={roomSummary}
-              onGoToManageRooms={() => { setRoomsReturnView('builder'); setAppView('manage-rooms'); }}
+              onAddRoom={handleAddRoom}
+              onUpdateRoom={handleUpdateRoom}
+              onDeleteRoom={handleDeleteRoom}
               onNext={goNext}
             />
           )}

@@ -28,14 +28,24 @@ public class RoomAvailabilityInfo {
      * Empty if the room has no bookings that day.
      */
     private List<OccupiedPeriod> occupiedPeriods;
+    private boolean recommended;
+    private String recommendationReason;
 
     public RoomAvailabilityInfo() {}
 
     public RoomAvailabilityInfo(RoomResponse room, boolean availableInRequestedSlot,
                                 List<OccupiedPeriod> occupiedPeriods) {
+        this(room, availableInRequestedSlot, occupiedPeriods, false, null);
+    }
+
+    public RoomAvailabilityInfo(RoomResponse room, boolean availableInRequestedSlot,
+                                List<OccupiedPeriod> occupiedPeriods, boolean recommended,
+                                String recommendationReason) {
         this.room = room;
         this.availableInRequestedSlot = availableInRequestedSlot;
         this.occupiedPeriods = occupiedPeriods;
+        this.recommended = recommended;
+        this.recommendationReason = recommendationReason;
     }
 
     public RoomResponse getRoom() { return room; }
@@ -50,4 +60,10 @@ public class RoomAvailabilityInfo {
     public void setOccupiedPeriods(List<OccupiedPeriod> occupiedPeriods) {
         this.occupiedPeriods = occupiedPeriods;
     }
+
+    public boolean isRecommended() { return recommended; }
+    public void setRecommended(boolean recommended) { this.recommended = recommended; }
+
+    public String getRecommendationReason() { return recommendationReason; }
+    public void setRecommendationReason(String recommendationReason) { this.recommendationReason = recommendationReason; }
 }

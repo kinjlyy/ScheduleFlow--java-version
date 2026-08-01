@@ -112,9 +112,10 @@ public class EventController {
     public ResponseEntity<AvailabilityResponse> checkAvailability(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam Integer startPeriod,
-            @RequestParam Integer endPeriod) {
-        log.debug("GET /api/events/availability — date={}, periods={}-{}", date, startPeriod, endPeriod);
-        AvailabilityResponse response = eventService.checkAvailability(date, startPeriod, endPeriod);
+            @RequestParam Integer endPeriod,
+            @RequestParam(required = false) Long timetableId) {
+        log.debug("GET /api/events/availability — date={}, periods={}-{}, timetableId={}", date, startPeriod, endPeriod, timetableId);
+        AvailabilityResponse response = eventService.checkAvailability(date, startPeriod, endPeriod, timetableId);
         return ResponseEntity.ok(response);
     }
 

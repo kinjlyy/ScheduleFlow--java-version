@@ -1,5 +1,5 @@
 // src/pages/ConstraintsPage.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Alert, Divider, FieldLabel, Input, Select, Button, SectionTitle } from '../components/UI.jsx';
 import StepFooter from '../components/StepFooter.jsx';
 import styles from './ConstraintsPage.module.css';
@@ -21,10 +21,75 @@ export default function ConstraintsPage({
   manageRooms, setManageRooms,
   rooms = [],
   roomSummary,
-  onGoToManageRooms,   // navigate to ManageRoomsPage (from TT builder context)
+  onAddRoom, onUpdateRoom, onDeleteRoom,
   onNext,
 }) {
-  // Calculate live summary stats
+  // Local state for Room Form (Add / Edit)
+  const [editingId, setEditingId] = useState(null);
+  const [roomNumber, setRoomNumber] = useState('');
+  const [maximumCapacity, setMaximumCapacity] = useState('60');
+  const [roomType, setRoomType] = useState('CLASSROOM');
+  const [hasProjector, setHasProjector] = useState(false);
+  const [hasAc, setHasAc] = useState(false);
+  const [hasComputers, setHasComputers] = useState(false);
+  const [active, setActive] = useState(true);
+  const [formError, setFormError] = useState('');
+
+  function resetForm() {
+    setEditingId(null);
+    setRoomNumber('');
+    setMaximumCapacity('60');
+    setRoomType('CLASSROOM');
+    setHasProjector(false);
+    setHasAc(false);
+    setHasComputers(false);
+    setActive(true);
+    setFormError('');
+  }
+
+  function handleEditClick(room) {
+    setEditingId(room.id);
+    setRoomNumber(room.roomNumber);
+    setMaximumCapacity(String(room.maximumCapacity));
+    setRoomType(room.roomType || 'CLASSROOM');
+    setHasProjector(Boolean(room.hasProjector));
+    setHasAc(Boolean(room.hasAc));
+    setHasComputers(Boolean(room.hasComputers));
+    setActive(room.active !== undefined ? Boolean(room.active) : true);
+    setFormError('');
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    if (!roomNumber.trim()) {
+      setFormError('Room number is required.');
+      return;
+    }
+    const cap = parseInt(maximumCapacity, 10);
+    if (isNaN(cap) || cap < 1) {
+      setFormError('Maximum capacity must be at least 1.');
+      return;
+    }
+
+    const payload = {
+      roomNumber: roomNumber.trim(),
+      maximumCapacity: cap,
+      roomType,
+      hasProjector,
+      hasAc,
+      hasComputers,
+      active,
+    };
+
+    if (editingId) {
+      onUpdateRoom(editingId, payload);
+    } else {
+      onAddRoom(payload);
+    }
+    resetForm();
+  }
+
+  // Calculate live summary stats from local rooms state if backend summary is null/loading
   const summaryStats = roomSummary || {
     totalRooms: rooms.length,
     activeRooms: rooms.filter(r => r.active !== false).length,
@@ -153,8 +218,8 @@ export default function ConstraintsPage({
 
         {manageRooms && (
           <div>
-            {/* Room Summary Stats */}
-            <div className={styles.section_label} style={{ marginTop: 14 }}>Room Summary</div>
+            {/* Room Summary Dashboard */}
+            <div className={styles.section_label} style={{ marginTop: 14 }}>Room Summary Dashboard</div>
             <div className={styles.dash_grid}>
               <div className={styles.dash_card}>
                 <span className={styles.dash_val}>{summaryStats.totalRooms}</span>
@@ -162,32 +227,141 @@ export default function ConstraintsPage({
               </div>
               <div className={styles.dash_card}>
                 <span className={styles.dash_val} style={{ color: '#10b981' }}>{summaryStats.activeRooms}</span>
-                <span className={styles.dash_lbl}>Active</span>
+                <span className={styles.dash_lbl}>Active Rooms</span>
+              </div>
+              <div className={styles.dash_card}>
+                <span className={styles.dash_val} style={{ color: '#ef4444' }}>{summaryStats.inactiveRooms}</span>
+                <span className={styles.dash_lbl}>Inactive Rooms</span>
               </div>
               <div className={styles.dash_card}>
                 <span className={styles.dash_val}>{summaryStats.laboratories}</span>
-                <span className={styles.dash_lbl}>Labs</span>
+                <span className={styles.dash_lbl}>Laboratories</span>
               </div>
               <div className={styles.dash_card}>
-                <span className={styles.dash_val}>{summaryStats.classrooms}</span>
-                <span className={styles.dash_lbl}>Classrooms</span>
+                <span className={styles.dash_val}>{summaryStats.seminarHalls}</span>
+                <span className={styles.dash_lbl}>Seminar Halls</span>
+              </div>
+              <div className={styles.dash_card}>
+                <span className={styles.dash_val}>{summaryStats.auditoriums}</span>
+                <span className={styles.dash_lbl}>Auditoriums</span>
+              </div>
+              <div className={styles.dash_card}>
+                <span className={styles.dash_val}>{summaryStats.projectorEnabledRooms}</span>
+                <span className={styles.dash_lbl}>Projector Rooms</span>
+              </div>
+              <div className={styles.dash_card}>
+                <span className={styles.dash_val}>{summaryStats.largestCapacity}</span>
+                <span className={styles.dash_lbl}>Max Room Cap</span>
               </div>
             </div>
 
-            {/* Existing rooms — read-only preview */}
-            {rooms.length > 0 && (
-              <div className={styles.room_table_wrap}>
-                <table className={styles.room_table}>
-                  <thead>
+            {/* Room Form */}
+            <form onSubmit={handleFormSubmit} className={styles.room_form}>
+              <div className={styles.section_label} style={{ marginBottom: 4 }}>
+                {editingId ? 'Edit Room' : 'Add New Room'}
+              </div>
+
+              {formError && <Alert type="danger">{formError}</Alert>}
+
+              <div className={styles.form_row}>
+                <div className={styles.field} style={{ flex: 1 }}>
+                  <FieldLabel>Room Number / Name</FieldLabel>
+                  <Input
+                    value={roomNumber}
+                    onChange={e => setRoomNumber(e.target.value)}
+                    placeholder="e.g. 101, Lab-A"
+                  />
+                </div>
+
+                <div className={styles.field} style={{ flex: 1 }}>
+                  <FieldLabel>Maximum Capacity</FieldLabel>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={maximumCapacity}
+                    onChange={e => setMaximumCapacity(e.target.value)}
+                  />
+                </div>
+
+                <div className={styles.field} style={{ flex: 1 }}>
+                  <FieldLabel>Room Type</FieldLabel>
+                  <Select
+                    value={roomType}
+                    onChange={e => setRoomType(e.target.value)}
+                    options={ROOM_TYPE_OPTIONS}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.checkbox_group}>
+                <label className={styles.checkbox_item}>
+                  <input
+                    type="checkbox"
+                    checked={hasProjector}
+                    onChange={e => setHasProjector(e.target.checked)}
+                  />
+                  Has Projector
+                </label>
+                <label className={styles.checkbox_item}>
+                  <input
+                    type="checkbox"
+                    checked={hasAc}
+                    onChange={e => setHasAc(e.target.checked)}
+                  />
+                  Has AC
+                </label>
+                <label className={styles.checkbox_item}>
+                  <input
+                    type="checkbox"
+                    checked={hasComputers}
+                    onChange={e => setHasComputers(e.target.checked)}
+                  />
+                  Has Computers
+                </label>
+                <label className={styles.checkbox_item}>
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={e => setActive(e.target.checked)}
+                  />
+                  Active Status
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <Button type="submit" variant="primary" size="sm">
+                  {editingId ? 'Save Changes' : 'Add Room'}
+                </Button>
+                {editingId && (
+                  <Button variant="outline" size="sm" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </form>
+
+            {/* Room List Table */}
+            <div className={styles.room_table_wrap}>
+              <table className={styles.room_table}>
+                <thead>
+                  <tr>
+                    <th>Room #</th>
+                    <th>Type</th>
+                    <th>Max Cap</th>
+                    <th>Status</th>
+                    <th>Features</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rooms.length === 0 ? (
                     <tr>
-                      <th>Room #</th>
-                      <th>Type</th>
-                      <th>Capacity</th>
-                      <th>Status</th>
+                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
+                        No rooms created yet. Add your first room above!
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rooms.map(r => (
+                  ) : (
+                    rooms.map(r => (
                       <tr key={r.id}>
                         <td><strong>{r.roomNumber}</strong></td>
                         <td>{r.roomType || 'CLASSROOM'}</td>
@@ -199,21 +373,27 @@ export default function ConstraintsPage({
                             <span className={styles.status_pill_inactive}>Inactive</span>
                           )}
                         </td>
+                        <td>
+                          {r.hasProjector && <span className={styles.feature_badge}>📽️ Projector</span>}
+                          {r.hasAc && <span className={styles.feature_badge}>❄️ AC</span>}
+                          {r.hasComputers && <span className={styles.feature_badge}>💻 Computers</span>}
+                          {!r.hasProjector && !r.hasAc && !r.hasComputers && <span style={{ color: 'var(--muted)' }}>—</span>}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <Button size="sm" variant="outline" onClick={() => handleEditClick(r)}>
+                              Edit
+                            </Button>
+                            <Button size="sm" variant="danger" onClick={() => onDeleteRoom(r.id)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className={styles.room_actions_row}>
-              <Button variant="outline" size="sm" onClick={onGoToManageRooms}>
-                🏠 + Add / Edit Rooms
-              </Button>
-              <Button variant="primary" size="sm" onClick={onNext}>
-                Continue TT Generation →
-              </Button>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

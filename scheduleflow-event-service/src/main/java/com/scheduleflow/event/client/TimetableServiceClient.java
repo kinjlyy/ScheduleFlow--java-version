@@ -8,6 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,13 +20,13 @@ import java.util.Map;
  * <p>Uses direct URL resolution via {@code TIMETABLE_SERVICE_URL} environment variable,
  * bypassing Eureka service discovery for compatibility with Render Free Tier.
  */
-@FeignClient(name = "TIMETABLE-SERVICE", url = "${TIMETABLE_SERVICE_URL:http://localhost:8080}", path = "/api/timetables")
+@FeignClient(name = "TIMETABLE-SERVICE", url = "${TIMETABLE_SERVICE_URL:http://localhost:8080}", path = "/api")
 public interface TimetableServiceClient {
 
     /**
      * Read-only Impact Analysis query.
      */
-    @GetMapping("/{timetableId}/impact")
+    @GetMapping("/timetables/{timetableId}/impact")
     TimetableImpactResponse getImpactedLectures(
             @PathVariable("timetableId") Long timetableId,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -37,13 +38,34 @@ public interface TimetableServiceClient {
     /**
      * Retrieve active timetable version metadata.
      */
-    @GetMapping("/active")
+    @GetMapping("/timetables/active")
     Map<String, Object> getActiveTimetable();
+
+    /**
+     * Retrieve all lectures from active timetable.
+     */
+    @GetMapping("/timetables/active/lectures")
+    List<Map<String, Object>> getActiveLectures();
+
+    /**
+     * Returns distinct room IDs occupied for a specific timetable, day, and period range.
+     * Periods are 1-indexed. Day is uppercase, e.g. "MONDAY".
+     *
+     * <p>This is the primary method for deriving room occupancy from lecture data
+     * without a separate occupancy table. Used by checkAvailability.
+     */
+    @GetMapping("/timetables/{timetableId}/occupied-rooms")
+    List<Long> getOccupiedRoomIds(
+            @PathVariable("timetableId") Long timetableId,
+            @RequestParam("day") String day,
+            @RequestParam("startPeriod") int startPeriod,
+            @RequestParam("endPeriod") int endPeriod
+    );
 
     /**
      * Single orchestration endpoint for executing timetable modifications (reschedule / cancel).
      */
-    @PostMapping("/{timetableId}/event-execution")
+    @PostMapping("/timetables/{timetableId}/event-execution")
     TimetableExecutionResultResponse executeEventImpact(
             @PathVariable("timetableId") Long timetableId,
             @RequestBody TimetableExecutionRequest request

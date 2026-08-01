@@ -239,13 +239,17 @@ export function lecturesToTimetableGrid(lectures) {
         timetable[sec][day].push({ free: true, subject: 'FREE', teacher: '' });
       }
 
+      const isEvent = l.lectureType === 'EVENT';
       timetable[sec][day][slot] = {
         free: false,
-        subject: l.subjectId || 'Subject',
+        subject: isEvent ? (l.eventName || l.subjectId || 'EVENT') : (l.subjectId || 'Subject'),
         teacher: l.teacherId || 'Teacher',
         roomId: l.roomId,
         roomNumber: l.roomNumber,
-        lectureType: l.lectureType
+        lectureType: l.lectureType,
+        isEvent: isEvent,
+        eventId: l.eventId,
+        eventName: l.eventName
       };
     });
   }

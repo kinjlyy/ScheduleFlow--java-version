@@ -241,8 +241,9 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod) {
-        log.debug("Checking multi-source availability for date={}, periods={}-{}", date, startPeriod, endPeriod);
+    public AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod, Long timetableId) {
+        log.debug("Checking multi-source availability for date={}, periods={}-{}, timetableId={}",
+                date, startPeriod, endPeriod, timetableId);
 
         if (date == null) {
             throw new ValidationException("Date parameter is required for availability check");
@@ -257,46 +258,30 @@ public class EventServiceImpl implements EventService {
                 .filter(e -> e.getLocationId() != null)
                 .collect(Collectors.groupingBy(Event::getLocationId));
 
-        // Source 2: Timetable Service Active Lectures on this Day of Week
+        // Source 2: Timetable Service Occupied Rooms derived directly from Lectures
         String dayOfWeek = date.getDayOfWeek().name(); // e.g. TUESDAY
         java.util.Set<Long> timetableOccupiedRoomIds = new java.util.HashSet<>();
-        java.util.Set<String> timetableOccupiedRoomNumbers = new java.util.HashSet<>();
 
         try {
-            List<Map<String, Object>> activeLectures = timetableServiceClient.getActiveLectures();
-            if (activeLectures != null) {
-                for (Map<String, Object> lec : activeLectures) {
-                    Object lecDay = lec.get("day");
-                    Object lecSlotObj = lec.get("lectureSlot");
-                    Object roomIdObj = lec.get("roomId");
-                    Object roomNumObj = lec.get("roomNumber");
-
-                    if (lecDay != null && lecSlotObj != null) {
-                        String dayStr = lecDay.toString().trim();
-                        int slot = Integer.parseInt(lecSlotObj.toString());
-
-                        // Handle both 0-indexed (0..5) and 1-indexed (1..6) lecture slots
-                        int period1 = slot + 1; // if 0-indexed
-                        int period2 = slot;     // if 1-indexed
-
-                        boolean periodMatches = (period1 >= startPeriod && period1 <= endPeriod)
-                                             || (period2 >= startPeriod && period2 <= endPeriod);
-
-                        if (dayStr.equalsIgnoreCase(dayOfWeek) && periodMatches) {
-                            if (roomIdObj != null) {
-                                try {
-                                    timetableOccupiedRoomIds.add(Long.valueOf(roomIdObj.toString()));
-                                } catch (NumberFormatException ignored) {}
-                            }
-                            if (roomNumObj != null) {
-                                timetableOccupiedRoomNumbers.add(roomNumObj.toString().trim().toUpperCase());
-                            }
-                        }
+            if (timetableId != null) {
+                // Query specific timetable requested by user
+                List<Long> occupiedIds = timetableServiceClient.getOccupiedRoomIds(timetableId, dayOfWeek, startPeriod, endPeriod);
+                if (occupiedIds != null) {
+                    timetableOccupiedRoomIds.addAll(occupiedIds);
+                }
+            } else {
+                // Fallback: Query active timetable if no timetableId provided
+                Map<String, Object> activeTt = timetableServiceClient.getActiveTimetable();
+                if (activeTt != null && activeTt.get("id") != null) {
+                    Long activeTtId = Long.valueOf(activeTt.get("id").toString());
+                    List<Long> occupiedIds = timetableServiceClient.getOccupiedRoomIds(activeTtId, dayOfWeek, startPeriod, endPeriod);
+                    if (occupiedIds != null) {
+                        timetableOccupiedRoomIds.addAll(occupiedIds);
                     }
                 }
             }
         } catch (Exception ex) {
-            log.warn("Could not query active timetable lectures for availability check: {}", ex.getMessage());
+            log.warn("Could not query occupied room IDs for timetable: {}", ex.getMessage());
         }
 
         List<RoomAvailabilityInfo> availableRooms = new ArrayList<>();
@@ -313,15 +298,14 @@ public class EventServiceImpl implements EventService {
                     b.getStartPeriod() <= endPeriod && b.getEndPeriod() >= startPeriod
             );
 
-            boolean hasTimetableConflict = timetableOccupiedRoomIds.contains(room.getId())
-                    || (room.getRoomNumber() != null && timetableOccupiedRoomNumbers.contains(room.getRoomNumber().trim().toUpperCase()));
+            boolean hasTimetableConflict = timetableOccupiedRoomIds.contains(room.getId());
 
             boolean isReserved = hasEventConflict || hasTimetableConflict;
 
             if (hasTimetableConflict) {
                 occupiedPeriods.add(new OccupiedPeriod(
-                        null,
-                        "Active Timetable Lecture",
+                        0L,
+                        "Timetable Lecture Scheduled",
                         startPeriod,
                         endPeriod,
                         EventStatus.SCHEDULED
@@ -337,7 +321,34 @@ public class EventServiceImpl implements EventService {
             }
         }
 
+        // Intelligent Room Ranking for Available Rooms
+        availableRooms.sort((a, b) -> {
+            int scoreA = calculateRoomSuitabilityScore(a.getRoom());
+            int scoreB = calculateRoomSuitabilityScore(b.getRoom());
+            return Integer.compare(scoreB, scoreA); // descending score
+        });
+
+        if (!availableRooms.isEmpty()) {
+            RoomAvailabilityInfo top = availableRooms.get(0);
+            top.setRecommended(true);
+            top.setRecommendationReason("Best Capacity & Type Match (" + top.getRoom().getRoomType() + ", Cap: " + top.getRoom().getMaximumCapacity() + ")");
+        }
+
         return new AvailabilityResponse(date, startPeriod, endPeriod, availableRooms, reservedRooms);
+    }
+
+    private int calculateRoomSuitabilityScore(RoomResponse room) {
+        int score = 0;
+        if (room == null) return score;
+        if ("CLASSROOM".equalsIgnoreCase(room.getRoomType())) score += 50;
+        else if ("SEMINAR_HALL".equalsIgnoreCase(room.getRoomType())) score += 40;
+        else if ("AUDITORIUM".equalsIgnoreCase(room.getRoomType())) score += 30;
+
+        int cap = room.getMaximumCapacity();
+        if (cap >= 40 && cap <= 100) score += 30;
+        else if (cap > 100) score += 15;
+
+        return score;
     }
 
     @Override

@@ -225,6 +225,28 @@ public class TimetableService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns the distinct room IDs occupied by a specific timetable on a given day
+     * within the requested period range.
+     *
+     * <p>Periods are 1-indexed (Period 1 = startPeriod 1).
+     * Internally converted to 0-indexed lecture slots before querying.
+     *
+     * @param timetableId the timetable to query
+     * @param day         uppercase day name, e.g. "MONDAY"
+     * @param startPeriod 1-indexed start period (inclusive)
+     * @param endPeriod   1-indexed end period (inclusive)
+     * @return list of distinct room IDs occupied in that slot range
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getOccupiedRoomIds(Long timetableId, String day, int startPeriod, int endPeriod) {
+        // lectureSlot is 0-indexed: Period 1 = slot 0, Period 2 = slot 1 …
+        int startSlot = startPeriod - 1;
+        int endSlot   = endPeriod   - 1;
+        return lectureRepository.findOccupiedRoomIds(
+                timetableId, day.toUpperCase(), startSlot, endSlot);
+    }
+
     // ── Active timetable lecture queries (convenience for existing APIs) ───────
 
     @Transactional(readOnly = true)
@@ -418,6 +440,38 @@ public class TimetableService {
             }
         }
 
+        // ── 5.5 Insert Event entries into all sections on the COPY for event's slot ──
+        if (request.getEventId() != null || request.getEventTitle() != null) {
+            String eventDay = request.getDate() != null ? request.getDate().getDayOfWeek().name() : "MONDAY";
+            int startPeriod = request.getStartPeriod() != null ? request.getStartPeriod() : 1;
+            int endPeriod = request.getEndPeriod() != null ? request.getEndPeriod() : startPeriod;
+
+            Set<String> distinctSections = clonedLectures.stream().map(Lecture::getSectionId).collect(Collectors.toSet());
+            if (distinctSections.isEmpty()) {
+                distinctSections.add("Section 1");
+            }
+
+            String eventTitle = request.getEventTitle() != null ? request.getEventTitle() : "Event #" + request.getEventId();
+            String organizer = request.getExecutedBy() != null ? request.getExecutedBy() : "EVENT";
+
+            for (String secId : distinctSections) {
+                for (int p = startPeriod; p <= endPeriod; p++) {
+                    Lecture eventLec = new Lecture();
+                    eventLec.setTimetable(copy);
+                    eventLec.setSectionId(secId);
+                    eventLec.setSubjectId("EVENT"); // Normalized: event title stored in eventName/eventId
+                    eventLec.setTeacherId(organizer);
+                    eventLec.setDay(eventDay);
+                    eventLec.setLectureSlot(p);
+                    eventLec.setLectureType(LectureType.EVENT);
+                    eventLec.setEventId(request.getEventId());
+                    eventLec.setEventName(eventTitle);
+                    eventLec.setCreatedAt(LocalDateTime.now());
+                    lectureRepository.save(eventLec);
+                }
+            }
+        }
+
         // ── 6. Activate copy, archive source (original untouched data-wise, status only changes) ──
         copy.setStatus(TimetableStatus.ACTIVE);
         timetableRepository.save(copy);
@@ -452,7 +506,9 @@ public class TimetableService {
                 l.getRoomNumber(),
                 l.getDay(),
                 l.getLectureSlot(),
-                l.getLectureType()
+                l.getLectureType(),
+                l.getEventId(),
+                l.getEventName()
         );
     }
 }

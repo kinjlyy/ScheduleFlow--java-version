@@ -107,4 +107,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
      * Find reservations matching category with optional status filter.
      */
     List<Event> findByEventCategoryAndStatusNot(EventCategory category, EventStatus status);
+
+    /**
+     * Find all events on a specific date with status not equal to specified status.
+     */
+    List<Event> findByDateAndStatusNot(LocalDate date, EventStatus status);
 }

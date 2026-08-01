@@ -14,6 +14,8 @@ public class LectureDTO {
     private String day;
     private int lectureSlot;
     private LectureType lectureType;
+    private Long eventId;
+    private String eventName;
 
     public LectureDTO() {}
 
@@ -30,6 +32,14 @@ public class LectureDTO {
         this.day = day;
         this.lectureSlot = lectureSlot;
         this.lectureType = lectureType;
+    }
+
+    public LectureDTO(Long id, Long timetableId, String sectionId, String subjectId,
+                      String teacherId, Long roomId, String roomNumber, String day,
+                      int lectureSlot, LectureType lectureType, Long eventId, String eventName) {
+        this(id, timetableId, sectionId, subjectId, teacherId, roomId, roomNumber, day, lectureSlot, lectureType);
+        this.eventId = eventId;
+        this.eventName = eventName;
     }
 
     public Long getId() { return id; }
@@ -61,4 +71,10 @@ public class LectureDTO {
 
     public LectureType getLectureType() { return lectureType; }
     public void setLectureType(LectureType lectureType) { this.lectureType = lectureType; }
+
+    public Long getEventId() { return eventId; }
+    public void setEventId(Long eventId) { this.eventId = eventId; }
+
+    public String getEventName() { return eventName; }
+    public void setEventName(String eventName) { this.eventName = eventName; }
 }
