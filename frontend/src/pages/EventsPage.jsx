@@ -74,38 +74,36 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Fetch available rooms based on timetable, date & periods ─────────────
+  // ── Fetch available rooms based on date & periods ─────────────────────────
+  // Always queries the availability endpoint when date+periods are given.
+  // The backend auto-detects the active timetable when timetableId is null.
+  // NEVER falls back to all-rooms once a date is selected (that would show occupied rooms).
   const fetchAvailableRoomsForForm = useCallback(async (ttId, date, startP, endP) => {
     setLoadingRooms(true);
     setModalRooms([]);
     try {
-      if (!ttId) {
-        // "None" timetable selected -> fetch all rooms from Resource Service
+      if (date && startP && endP) {
+        // Date & periods known — query availability (timetableId may be null; backend uses active TT)
+        const avail = await checkAvailability(
+          date, Number(startP), Number(endP), ttId || null, token
+        ).catch(() => null);
+        if (avail && Array.isArray(avail.availableRooms)) {
+          // Map to room objects and show ONLY available rooms (may be empty — that is correct)
+          const availList = avail.availableRooms.map(item => item.room || item);
+          setModalRooms(availList);
+        } else {
+          // Availability endpoint failed — show nothing rather than mislead user
+          setModalRooms([]);
+        }
+      } else {
+        // Date not selected yet — show all active rooms as initial hint
         const allRooms = await fetchRooms(token).catch(() => []);
         const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
-        setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
-      } else {
-        // Timetable selected -> query availability endpoint for specified slot if date is present
-        if (date && startP && endP) {
-          const avail = await checkAvailability(date, Number(startP), Number(endP), ttId, token).catch(() => null);
-          if (avail && Array.isArray(avail.availableRooms) && avail.availableRooms.length > 0) {
-            const availList = avail.availableRooms.map(item => item.room || item);
-            setModalRooms(availList);
-          } else {
-            const allRooms = await fetchRooms(token).catch(() => []);
-            const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
-            setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
-          }
-        } else {
-          // If date/periods not set yet, list all active rooms from Resource Service
-          const allRooms = await fetchRooms(token).catch(() => []);
-          const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
-          setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
-        }
+        setModalRooms(activeRooms);
       }
     } catch (err) {
       console.warn('Could not fetch available rooms:', err.message);
-      setModalRooms(DEFAULT_FALLBACK_ROOMS);
+      setModalRooms([]);
     } finally {
       setLoadingRooms(false);
     }
@@ -365,9 +363,9 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                 </div>
               </div>
 
-              {/* TARGET TIMETABLE — ask first */}
+              {/* TARGET TIMETABLE — optional; availability always checks active timetable */}
               <div className={styles.form_group}>
-                <label>TARGET TIMETABLE</label>
+                <label>TARGET TIMETABLE (optional)</label>
                 <select
                   value={eventForm.timetableId}
                   onChange={e => {
@@ -376,7 +374,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                     fetchAvailableRoomsForForm(ttId, eventForm.date, eventForm.startPeriod, eventForm.endPeriod);
                   }}
                 >
-                  <option value="">None / All Rooms (From Resource Service)</option>
+                  <option value="">Auto (use Active Timetable)</option>
                   {timetables.map(tt => (
                     <option key={tt.id} value={tt.id}>
                       Timetable #{tt.id} ({tt.sectionName}{tt.active ? ' [ACTIVE]' : ''})
@@ -385,8 +383,8 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                 </select>
                 <small className={styles.text_muted}>
                   {eventForm.timetableId
-                    ? 'Showing available rooms for this timetable slot.'
-                    : 'Showing all active rooms from Resource Service.'}
+                    ? 'Checking room availability against selected timetable.'
+                    : 'Checking room availability against the currently ACTIVE timetable.'}
                 </small>
               </div>
 
@@ -449,8 +447,13 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                     ))}
                   </select>
                 )}
-                {!loadingRooms && modalRooms.length === 0 && (
-                  <small className={styles.text_muted}>No available rooms found for this slot.</small>
+                {!loadingRooms && modalRooms.length === 0 && eventForm.date && (
+                  <small className={styles.text_warning ?? styles.text_muted}>
+                    ⚠ No available rooms for this date &amp; period — all rooms are occupied.
+                  </small>
+                )}
+                {!loadingRooms && modalRooms.length === 0 && !eventForm.date && (
+                  <small className={styles.text_muted}>Select a date to see available rooms.</small>
                 )}
               </div>
 
