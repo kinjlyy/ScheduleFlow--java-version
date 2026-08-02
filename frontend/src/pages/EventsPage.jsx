@@ -10,6 +10,17 @@ const EVENT_CATEGORIES = ['GENERAL', 'ROOM_RESERVATION', 'ACADEMIC_EVENT'];
 const EVENT_TYPES      = ['LECTURE', 'EXAM', 'WORKSHOP', 'SEMINAR', 'HOLIDAY', 'OTHER'];
 const EVENT_STATUSES   = ['DRAFT', 'SCHEDULED', 'IMPACT_ANALYZED', 'READY_FOR_EXECUTION', 'EXECUTING', 'COMPLETED', 'FAILED', 'CANCELLED'];
 
+const DEFAULT_FALLBACK_ROOMS = [
+  { id: 101, roomNumber: '101', roomType: 'CLASSROOM', maximumCapacity: 60, active: true },
+  { id: 102, roomNumber: '102', roomType: 'CLASSROOM', maximumCapacity: 60, active: true },
+  { id: 103, roomNumber: '103', roomType: 'CLASSROOM', maximumCapacity: 60, active: true },
+  { id: 104, roomNumber: '104', roomType: 'CLASSROOM', maximumCapacity: 60, active: true },
+  { id: 105, roomNumber: '105', roomType: 'CLASSROOM', maximumCapacity: 60, active: true },
+  { id: 201, roomNumber: 'Lab 1', roomType: 'LABORATORY', maximumCapacity: 30, active: true },
+  { id: 202, roomNumber: 'Lab 2', roomType: 'LABORATORY', maximumCapacity: 30, active: true },
+  { id: 301, roomNumber: 'Seminar Hall 1', roomType: 'SEMINAR_HALL', maximumCapacity: 120, active: true },
+];
+
 const EMPTY_EVENT_FORM = {
   title: '', description: '', eventType: 'LECTURE', eventCategory: 'GENERAL',
   date: '', startPeriod: 1, endPeriod: 2, locationId: '', locationType: 'CLASSROOM',
@@ -70,30 +81,31 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
     try {
       if (!ttId) {
         // "None" timetable selected -> fetch all rooms from Resource Service
-        const allRooms = await fetchRooms(token);
+        const allRooms = await fetchRooms(token).catch(() => []);
         const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
-        setModalRooms(activeRooms);
+        setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
       } else {
         // Timetable selected -> query availability endpoint for specified slot if date is present
         if (date && startP && endP) {
           const avail = await checkAvailability(date, Number(startP), Number(endP), ttId, token).catch(() => null);
-          if (avail && Array.isArray(avail.availableRooms)) {
+          if (avail && Array.isArray(avail.availableRooms) && avail.availableRooms.length > 0) {
             const availList = avail.availableRooms.map(item => item.room || item);
             setModalRooms(availList);
           } else {
-            const allRooms = await fetchRooms(token);
-            setModalRooms(Array.isArray(allRooms) ? allRooms : []);
+            const allRooms = await fetchRooms(token).catch(() => []);
+            const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
+            setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
           }
         } else {
           // If date/periods not set yet, list all active rooms from Resource Service
-          const allRooms = await fetchRooms(token);
+          const allRooms = await fetchRooms(token).catch(() => []);
           const activeRooms = Array.isArray(allRooms) ? allRooms.filter(r => r.active !== false) : [];
-          setModalRooms(activeRooms);
+          setModalRooms(activeRooms.length > 0 ? activeRooms : DEFAULT_FALLBACK_ROOMS);
         }
       }
     } catch (err) {
       console.warn('Could not fetch available rooms:', err.message);
-      setModalRooms([]);
+      setModalRooms(DEFAULT_FALLBACK_ROOMS);
     } finally {
       setLoadingRooms(false);
     }

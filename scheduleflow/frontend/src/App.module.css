@@ -1,0 +1,24 @@
+/* src/App.module.css */
+.app_root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 64px);
+}
+
+.main {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-x: auto;
+  /* Subtle inner scroll for long timetable tables */
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+}

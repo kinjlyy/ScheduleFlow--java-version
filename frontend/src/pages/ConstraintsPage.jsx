@@ -22,6 +22,7 @@ export default function ConstraintsPage({
   rooms = [],
   roomSummary,
   onAddRoom, onUpdateRoom, onDeleteRoom,
+  onOpenManageRooms,
   onNext,
 }) {
   // Local state for Room Form (Add / Edit)
@@ -218,6 +219,23 @@ export default function ConstraintsPage({
 
         {manageRooms && (
           <div>
+            <div style={{ margin: '14px 0 16px 0', padding: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>Manage Rooms Module</strong>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: 2 }}>
+                  Open the dedicated room management page to add, edit, or delete rooms in Resource Service.
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onOpenManageRooms}
+                style={{ background: '#0284c7', borderColor: '#0284c7', fontWeight: 600 }}
+              >
+                🏢 Add / Edit Rooms (Manage Rooms Page) →
+              </Button>
+            </div>
+
             {/* Room Summary Dashboard */}
             <div className={styles.section_label} style={{ marginTop: 14 }}>Room Summary Dashboard</div>
             <div className={styles.dash_grid}>
