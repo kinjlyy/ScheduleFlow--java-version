@@ -62,10 +62,16 @@ public class TimetableService {
 
         // 3. If the scheduler returned results, persist lectures
         if (response.getTimetable() != null && !response.getTimetable().isEmpty()) {
-            // Build room lookup map (id -> Room domain model) via RoomProvider abstraction.
-            // FeignRoomProvider calls OpenFeign to RESOURCE-SERVICE for active room data.
-            Map<Long, Room> roomLookup = new HashMap<>();
-            roomProvider.findAllActiveRooms().forEach(r -> roomLookup.put(r.getId(), r));
+            // Build room lookup maps (id -> Room and roomNumber -> Room) from active database rooms
+            List<Room> dbRooms = roomProvider.findAllActiveRooms();
+            Map<Long, Room> roomLookupById = new HashMap<>();
+            Map<String, Room> roomLookupByNumber = new HashMap<>();
+            if (dbRooms != null) {
+                for (Room r : dbRooms) {
+                    if (r.getId() != null) roomLookupById.put(r.getId(), r);
+                    if (r.getRoomNumber() != null) roomLookupByNumber.put(r.getRoomNumber().trim().toUpperCase(), r);
+                }
+            }
 
             // Build section mapping lookup for lectureType
             Map<String, Map<String, SubjectMappingDTO>> sectionMappingLookup = new HashMap<>();
@@ -115,27 +121,27 @@ public class TimetableService {
                             if (mapped != null) lt = mapped;
                         }
 
-                        // Determine room (from cell roomId or fixedRoom or roomNumber)
+                        // Determine room (from cell roomId, fixedRoom, or roomNumber)
                         Room room = null;
                         if (cell.getRoomId() != null) {
-                            room = roomLookup.get(cell.getRoomId());
-                        } else if (sectionFixedRoom.containsKey(sectionId)) {
-                            room = roomLookup.get(sectionFixedRoom.get(sectionId));
+                            room = roomLookupById.get(cell.getRoomId());
                         }
                         if (room == null && cell.getRoomNumber() != null) {
-                            room = roomLookup.values().stream()
-                                    .filter(r -> cell.getRoomNumber().equalsIgnoreCase(r.getRoomNumber()))
-                                    .findFirst()
-                                    .orElse(null);
+                            room = roomLookupByNumber.get(cell.getRoomNumber().trim().toUpperCase());
+                        }
+                        if (room == null && sectionFixedRoom.containsKey(sectionId)) {
+                            room = roomLookupById.get(sectionFixedRoom.get(sectionId));
                         }
 
-                        Long roomId = room != null ? room.getId() : cell.getRoomId();
-                        String roomNumber = room != null ? room.getRoomNumber() : cell.getRoomNumber();
-
-                        if (roomId == null) {
-                            log.warn("Lecture for section '{}', subject '{}' was saved with NULL roomId (roomNumber='{}')",
-                                    sectionId, cell.getSubject(), roomNumber);
+                        // FAIL-FAST VALIDATION: Remove unsafe fallback to cell.getRoomId()
+                        if (room == null) {
+                            throw new IllegalStateException(String.format(
+                                    "Failed to resolve database Room primary key for section '%s', subject '%s', roomNumber '%s', cellRoomId '%s'. Room must exist in database.",
+                                    sectionId, cell.getSubject(), cell.getRoomNumber(), cell.getRoomId()));
                         }
+
+                        Long roomId = room.getId(); // ALWAYS the real database primary key
+                        String roomNumber = room.getRoomNumber();
 
                         Lecture lecture = new Lecture(
                                 timetable,
