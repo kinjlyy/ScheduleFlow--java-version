@@ -1,0 +1,7 @@
+-- =============================================================================
+--  V1__initial_schema.sql
+--  Flyway baseline script — marks the existing schema as the starting point.
+--  The table was already created by Hibernate (ddl-auto=update) with the
+--  original CHECK constraints.  V2 will update those constraints.
+-- =============================================================================
+-- (intentionally empty — Flyway baseline marker only)

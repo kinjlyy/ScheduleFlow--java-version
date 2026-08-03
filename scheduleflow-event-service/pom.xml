@@ -87,6 +87,13 @@
             <version>3.0.0</version>
         </dependency>
 
+        <!-- Flyway — manages PostgreSQL schema migrations safely without data loss -->
+        <!-- Spring Boot 3.2 BOM resolves flyway-core to 9.x which includes PostgreSQL support -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
         <!-- OpenAPI / Swagger UI -->
         <dependency>
             <groupId>org.springdoc</groupId>

@@ -46,6 +46,10 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
   const [editingEvent, setEditingEvent]     = useState(null);
   const [eventForm, setEventForm]           = useState(EMPTY_EVENT_FORM);
   const [savingEvent, setSavingEvent]       = useState(false);
+  // Inline field validation errors — populated from backend 400 fieldErrors map
+  const [fieldErrors, setFieldErrors]       = useState({});
+  // Toast for unexpected 5xx errors only
+  const [serverToast, setServerToast]       = useState(null);
 
   // Rooms fetched based on selected timetable & slot availability
   const [modalRooms, setModalRooms]         = useState([]);
@@ -54,6 +58,13 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
   // History modal state
   const [historyEvent, setHistoryEvent] = useState(null);
   const [historyData, setHistoryData]   = useState(null);
+
+  // ── Toast auto-dismiss ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!serverToast) return;
+    const t = setTimeout(() => setServerToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [serverToast]);
 
   // ── Load initial data ──────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -113,6 +124,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
   function openCreateEvent() {
     setEditingEvent(null);
     setEventForm(EMPTY_EVENT_FORM);
+    setFieldErrors({});
     setModalRooms([]);
     setShowEventModal(true);
     fetchAvailableRoomsForForm('', EMPTY_EVENT_FORM.date, EMPTY_EVENT_FORM.startPeriod, EMPTY_EVENT_FORM.endPeriod);
@@ -120,6 +132,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
 
   function openEditEvent(ev) {
     setEditingEvent(ev);
+    setFieldErrors({});
     const form = {
       title: ev.title || '',
       description: ev.description || '',
@@ -143,6 +156,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
   async function handleSaveEvent(e) {
     e.preventDefault();
     setSavingEvent(true);
+    setFieldErrors({});
     try {
       const payload = {
         ...eventForm,
@@ -154,21 +168,49 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
       // Remove UI-only field before sending to backend
       delete payload.syncWithTimetable;
 
-      if (editingEvent) {
-        await updateEvent(editingEvent.id, payload, token);
+      // Call API directly so we can inspect the response status before the
+      // eventApi helper throws and discards structured JSON.
+      const endpoint = editingEvent
+        ? `${(await import('../api/eventApi.js')).EVENT_BASE}/${editingEvent.id}`
+        : (await import('../api/eventApi.js')).EVENT_BASE;
+      const method   = editingEvent ? 'PUT' : 'POST';
+      const headers  = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(endpoint, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        // Success path — unchanged
+        if (eventForm.syncWithTimetable && onTimetableRefreshed) {
+          onTimetableRefreshed();
+        }
+        setShowEventModal(false);
+        loadData();
+        return;
+      }
+
+      // ── Error path ──────────────────────────────────────────────────────
+      let body = {};
+      try { body = await res.json(); } catch (_) { /* non-JSON error body */ }
+
+      if (res.status === 400 && body.fieldErrors) {
+        // Bean Validation errors — display inline below each field
+        setFieldErrors(body.fieldErrors);
+      } else if (res.status === 400 && body.message) {
+        // Single 400 message (e.g. ValidationException from service layer)
+        setFieldErrors({ _form: body.message });
       } else {
-        await createEvent(payload, token);
+        // 5xx or unexpected error — show toast, not alert
+        const msg = body.message || `Server error (${res.status}). Please try again.`;
+        setServerToast(msg);
       }
-
-      // If sync was requested, notify parent to refresh timetable view
-      if (eventForm.syncWithTimetable && onTimetableRefreshed) {
-        onTimetableRefreshed();
-      }
-
-      setShowEventModal(false);
-      loadData();
     } catch (err) {
-      alert('Save Error: ' + err.message);
+      // Network-level failure
+      setServerToast('Network error: ' + err.message);
     } finally {
       setSavingEvent(false);
     }
@@ -206,8 +248,24 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
     return mCat && mStat && mDate && mSearch;
   });
 
+  // Helper to clear a single field's error when the user edits it
+  function updateField(patch) {
+    setEventForm(f => ({ ...f, ...patch }));
+    const key = Object.keys(patch)[0];
+    if (key && fieldErrors[key]) {
+      setFieldErrors(fe => { const n = { ...fe }; delete n[key]; return n; });
+    }
+  }
+
   return (
     <div className={styles.root}>
+      {/* ── Server-error Toast (5xx only) ─────────────────────────────────── */}
+      {serverToast && (
+        <div className={styles.toast_error} role="alert">
+          <span>⚠ {serverToast}</span>
+          <button className={styles.toast_close} onClick={() => setServerToast(null)}>✕</button>
+        </div>
+      )}
       {/* Top Bar */}
       <div className={styles.topbar}>
         <button className={styles.back_btn} onClick={onBack}>← Dashboard</button>
@@ -331,14 +389,21 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
             <h3>{editingEvent ? `Edit Event #${editingEvent.id}` : 'Create New Event'}</h3>
             <form onSubmit={handleSaveEvent} className={styles.modal_form}>
 
+              {/* Form-level error (single 400 message) */}
+              {fieldErrors._form && (
+                <div className={styles.form_error_banner}>{fieldErrors._form}</div>
+              )}
+
               {/* TITLE */}
               <div className={styles.form_group}>
                 <label>TITLE *</label>
                 <input
                   required
                   value={eventForm.title}
-                  onChange={e => setEventForm({ ...eventForm, title: e.target.value })}
+                  className={fieldErrors.title ? styles.input_error : ''}
+                  onChange={e => updateField({ title: e.target.value })}
                 />
+                {fieldErrors.title && <span className={styles.field_error}>{fieldErrors.title}</span>}
               </div>
 
               {/* CATEGORY + EVENT TYPE */}
@@ -396,12 +461,14 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                     type="date"
                     required
                     value={eventForm.date}
+                    className={fieldErrors.date ? styles.input_error : ''}
                     onChange={e => {
                       const d = e.target.value;
-                      setEventForm({ ...eventForm, date: d });
+                      updateField({ date: d });
                       fetchAvailableRoomsForForm(eventForm.timetableId, d, eventForm.startPeriod, eventForm.endPeriod);
                     }}
                   />
+                  {fieldErrors.date && <span className={styles.field_error}>{fieldErrors.date}</span>}
                 </div>
                 <div className={styles.form_group}>
                   <label>START PERIOD *</label>
@@ -462,8 +529,10 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                 <label>ORGANIZER</label>
                 <input
                   value={eventForm.organizer}
-                  onChange={e => setEventForm({ ...eventForm, organizer: e.target.value })}
+                  className={fieldErrors.organizer ? styles.input_error : ''}
+                  onChange={e => updateField({ organizer: e.target.value })}
                 />
+                {fieldErrors.organizer && <span className={styles.field_error}>{fieldErrors.organizer}</span>}
               </div>
 
               {/* DESCRIPTION */}
@@ -472,8 +541,10 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                 <textarea
                   rows={3}
                   value={eventForm.description}
-                  onChange={e => setEventForm({ ...eventForm, description: e.target.value })}
+                  className={fieldErrors.description ? styles.input_error : ''}
+                  onChange={e => updateField({ description: e.target.value })}
                 />
+                {fieldErrors.description && <span className={styles.field_error}>{fieldErrors.description}</span>}
               </div>
 
               {/* SYNC WITH TIMETABLE toggle — shown only when timetable is selected */}
@@ -497,7 +568,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
                 <button
                   type="button"
                   className={styles.btn_reset}
-                  onClick={() => setShowEventModal(false)}
+                  onClick={() => { setShowEventModal(false); setFieldErrors({}); }}
                 >
                   Cancel
                 </button>
