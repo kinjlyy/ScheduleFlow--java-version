@@ -11,6 +11,8 @@ public class TimetableExecutionRequest {
     private LocalDate date;
     private Integer startPeriod;
     private Integer endPeriod;
+    private Long locationId;
+    private String roomNumber;
     private List<Long> affectedLectureIds;
     private String executedBy;
 
@@ -25,6 +27,22 @@ public class TimetableExecutionRequest {
         this.date = date;
         this.startPeriod = startPeriod;
         this.endPeriod = endPeriod;
+        this.affectedLectureIds = affectedLectureIds;
+        this.executedBy = executedBy;
+    }
+
+    public TimetableExecutionRequest(Long eventId, String eventTitle, String executionStrategy,
+                                     LocalDate date, Integer startPeriod, Integer endPeriod,
+                                     Long locationId, String roomNumber,
+                                     List<Long> affectedLectureIds, String executedBy) {
+        this.eventId = eventId;
+        this.eventTitle = eventTitle;
+        this.executionStrategy = executionStrategy;
+        this.date = date;
+        this.startPeriod = startPeriod;
+        this.endPeriod = endPeriod;
+        this.locationId = locationId;
+        this.roomNumber = roomNumber;
         this.affectedLectureIds = affectedLectureIds;
         this.executedBy = executedBy;
     }
@@ -46,6 +64,12 @@ public class TimetableExecutionRequest {
 
     public Integer getEndPeriod() { return endPeriod; }
     public void setEndPeriod(Integer endPeriod) { this.endPeriod = endPeriod; }
+
+    public Long getLocationId() { return locationId; }
+    public void setLocationId(Long locationId) { this.locationId = locationId; }
+
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
     public List<Long> getAffectedLectureIds() { return affectedLectureIds; }
     public void setAffectedLectureIds(List<Long> affectedLectureIds) { this.affectedLectureIds = affectedLectureIds; }

@@ -17,6 +17,8 @@ import java.util.List;
 @RequestMapping("/api")
 public class LectureController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LectureController.class);
+
     private final TimetableService timetableService;
 
     public LectureController(TimetableService timetableService) {
@@ -71,7 +73,11 @@ public class LectureController {
             @RequestParam String day,
             @RequestParam int startPeriod,
             @RequestParam int endPeriod) {
-        return ResponseEntity.ok(timetableService.getOccupiedRoomIds(id, day, startPeriod, endPeriod));
+        log.info("GET /api/timetables/{}/occupied-rooms — day={}, startPeriod={}, endPeriod={}",
+                id, day, startPeriod, endPeriod);
+        List<Long> occupiedRoomIds = timetableService.getOccupiedRoomIds(id, day, startPeriod, endPeriod);
+        log.info("GET /api/timetables/{}/occupied-rooms — result: {}", id, occupiedRoomIds);
+        return ResponseEntity.ok(occupiedRoomIds);
     }
 
     // ── Active Timetable Convenience Queries ─────────────────────────────────

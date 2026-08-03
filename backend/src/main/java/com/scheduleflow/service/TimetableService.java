@@ -7,6 +7,8 @@ import com.scheduleflow.repository.LectureRepository;
 import com.scheduleflow.repository.TimetableRepository;
 import com.scheduleflow.scheduler.RoomProvider;
 import com.scheduleflow.util.TimetableConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 @Service
 public class TimetableService {
 
+    private static final Logger log = LoggerFactory.getLogger(TimetableService.class);
     private static final String[] DAYS = TimetableConstants.DAYS;
 
     private final SchedulerService schedulerService;
@@ -112,16 +115,27 @@ public class TimetableService {
                             if (mapped != null) lt = mapped;
                         }
 
-                        // Determine room (from cell roomId or fixedRoom)
+                        // Determine room (from cell roomId or fixedRoom or roomNumber)
                         Room room = null;
                         if (cell.getRoomId() != null) {
                             room = roomLookup.get(cell.getRoomId());
                         } else if (sectionFixedRoom.containsKey(sectionId)) {
                             room = roomLookup.get(sectionFixedRoom.get(sectionId));
                         }
+                        if (room == null && cell.getRoomNumber() != null) {
+                            room = roomLookup.values().stream()
+                                    .filter(r -> cell.getRoomNumber().equalsIgnoreCase(r.getRoomNumber()))
+                                    .findFirst()
+                                    .orElse(null);
+                        }
 
                         Long roomId = room != null ? room.getId() : cell.getRoomId();
                         String roomNumber = room != null ? room.getRoomNumber() : cell.getRoomNumber();
+
+                        if (roomId == null) {
+                            log.warn("Lecture for section '{}', subject '{}' was saved with NULL roomId (roomNumber='{}')",
+                                    sectionId, cell.getSubject(), roomNumber);
+                        }
 
                         Lecture lecture = new Lecture(
                                 timetable,
@@ -243,8 +257,12 @@ public class TimetableService {
         // lectureSlot is 0-indexed: Period 1 = slot 0, Period 2 = slot 1 …
         int startSlot = startPeriod - 1;
         int endSlot   = endPeriod   - 1;
-        return lectureRepository.findOccupiedRoomIds(
+        log.info("TimetableService.getOccupiedRoomIds: timetableId={}, day={}, periods={}-{} → slots={}-{}",
+                timetableId, day, startPeriod, endPeriod, startSlot, endSlot);
+        List<Long> occupiedRoomIds = lectureRepository.findOccupiedRoomIds(
                 timetableId, day.toUpperCase(), startSlot, endSlot);
+        log.info("TimetableService.getOccupiedRoomIds result for TT #{}: {}", timetableId, occupiedRoomIds);
+        return occupiedRoomIds;
     }
 
     // ── Active timetable lecture queries (convenience for existing APIs) ───────
@@ -456,13 +474,16 @@ public class TimetableService {
 
             for (String secId : distinctSections) {
                 for (int p = startPeriod; p <= endPeriod; p++) {
+                    int slot = p - 1; // 1-indexed period to 0-indexed slot
                     Lecture eventLec = new Lecture();
                     eventLec.setTimetable(copy);
                     eventLec.setSectionId(secId);
                     eventLec.setSubjectId("EVENT"); // Normalized: event title stored in eventName/eventId
                     eventLec.setTeacherId(organizer);
+                    eventLec.setRoomId(request.getLocationId());
+                    eventLec.setRoomNumber(request.getRoomNumber());
                     eventLec.setDay(eventDay);
-                    eventLec.setLectureSlot(p);
+                    eventLec.setLectureSlot(slot);
                     eventLec.setLectureType(LectureType.EVENT);
                     eventLec.setEventId(request.getEventId());
                     eventLec.setEventName(eventTitle);

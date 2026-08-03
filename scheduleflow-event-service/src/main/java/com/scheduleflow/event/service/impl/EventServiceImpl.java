@@ -242,7 +242,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public AvailabilityResponse checkAvailability(LocalDate date, Integer startPeriod, Integer endPeriod, Long timetableId) {
-        log.debug("Checking multi-source availability for date={}, periods={}-{}, timetableId={}",
+        log.info("▶ checkAvailability INCOMING REQUEST: date={}, startPeriod={}, endPeriod={}, timetableId={}",
                 date, startPeriod, endPeriod, timetableId);
 
         if (date == null) {
@@ -250,7 +250,24 @@ public class EventServiceImpl implements EventService {
         }
         validatePeriods(startPeriod, endPeriod);
 
-        List<RoomResponse> activeRooms = resourceServiceClient.getActiveRooms();
+        String dayOfWeek = date.getDayOfWeek().name(); // e.g. MONDAY
+        int startSlot = startPeriod - 1; // Period 1 → Slot 0
+        int endSlot = endPeriod - 1;     // Period 2 → Slot 1
+
+        log.info("▶ Derived values: dayOfWeek={}, startSlot={}, endSlot={} (Period range {}-{})",
+                dayOfWeek, startSlot, endSlot, startPeriod, endPeriod);
+
+        List<RoomResponse> activeRooms = null;
+        try {
+            activeRooms = resourceServiceClient.getActiveRooms();
+        } catch (Exception ex) {
+            log.error("Failed to fetch active rooms from Resource Service: {}", ex.getMessage(), ex);
+            activeRooms = List.of();
+        }
+        if (activeRooms == null) activeRooms = List.of();
+
+        List<Long> allRoomIds = activeRooms.stream().map(RoomResponse::getId).toList();
+        log.info("▶ Active rooms count={}, allRoomIds={}", activeRooms.size(), allRoomIds);
 
         // Source 1: Event Service Scheduled Events & Room Reservations on this Date
         List<Event> dailyEvents = eventRepository.findByDateAndStatusNot(date, EventStatus.CANCELLED);
@@ -259,30 +276,34 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.groupingBy(Event::getLocationId));
 
         // Source 2: Timetable Service Occupied Rooms derived directly from Lectures
-        String dayOfWeek = date.getDayOfWeek().name(); // e.g. TUESDAY
         java.util.Set<Long> timetableOccupiedRoomIds = new java.util.HashSet<>();
+        Long resolvedTimetableId = timetableId;
 
         try {
-            if (timetableId != null) {
-                // Query specific timetable requested by user
-                List<Long> occupiedIds = timetableServiceClient.getOccupiedRoomIds(timetableId, dayOfWeek, startPeriod, endPeriod);
+            if (resolvedTimetableId == null) {
+                Map<String, Object> activeTt = timetableServiceClient.getActiveTimetable();
+                log.info("▶ Active timetable response from Timetable Service: {}", activeTt);
+                if (activeTt != null && activeTt.get("id") != null) {
+                    resolvedTimetableId = Long.valueOf(activeTt.get("id").toString());
+                }
+            }
+
+            if (resolvedTimetableId != null) {
+                log.info("▶ Querying Timetable Service getOccupiedRoomIds: timetableId={}, day={}, startPeriod={}, endPeriod={}",
+                        resolvedTimetableId, dayOfWeek, startPeriod, endPeriod);
+                List<Long> occupiedIds = timetableServiceClient.getOccupiedRoomIds(resolvedTimetableId, dayOfWeek, startPeriod, endPeriod);
                 if (occupiedIds != null) {
                     timetableOccupiedRoomIds.addAll(occupiedIds);
                 }
             } else {
-                // Fallback: Query active timetable if no timetableId provided
-                Map<String, Object> activeTt = timetableServiceClient.getActiveTimetable();
-                if (activeTt != null && activeTt.get("id") != null) {
-                    Long activeTtId = Long.valueOf(activeTt.get("id").toString());
-                    List<Long> occupiedIds = timetableServiceClient.getOccupiedRoomIds(activeTtId, dayOfWeek, startPeriod, endPeriod);
-                    if (occupiedIds != null) {
-                        timetableOccupiedRoomIds.addAll(occupiedIds);
-                    }
-                }
+                log.warn("⚠️ No active timetable found to query occupied room IDs!");
             }
         } catch (Exception ex) {
-            log.warn("Could not query occupied room IDs for timetable: {}", ex.getMessage());
+            log.error("❌ Exception querying occupied room IDs from Timetable Service for timetableId={}: {}",
+                    resolvedTimetableId, ex.getMessage(), ex);
         }
+
+        log.info("▶ Occupied room IDs from Timetable Service: {}", timetableOccupiedRoomIds);
 
         List<RoomAvailabilityInfo> availableRooms = new ArrayList<>();
         List<RoomAvailabilityInfo> reservedRooms = new ArrayList<>();
@@ -333,6 +354,12 @@ public class EventServiceImpl implements EventService {
             top.setRecommended(true);
             top.setRecommendationReason("Best Capacity & Type Match (" + top.getRoom().getRoomType() + ", Cap: " + top.getRoom().getMaximumCapacity() + ")");
         }
+
+        List<Long> availableRoomIds = availableRooms.stream().map(r -> r.getRoom().getId()).toList();
+        List<Long> reservedRoomIds = reservedRooms.stream().map(r -> r.getRoom().getId()).toList();
+
+        log.info("✔ checkAvailability COMPLETED: totalAvailable={}, totalReserved={}, availableRoomIds={}, reservedRoomIds={}",
+                availableRooms.size(), reservedRooms.size(), availableRoomIds, reservedRoomIds);
 
         return new AvailabilityResponse(date, startPeriod, endPeriod, availableRooms, reservedRooms);
     }
@@ -540,6 +567,16 @@ public class EventServiceImpl implements EventService {
                 ? impact.getAffectedLectures().stream().map(ImpactedLectureResponse::getId).toList()
                 : List.of();
 
+        String roomNumber = null;
+        if (event.getLocationId() != null) {
+            try {
+                RoomResponse room = resourceServiceClient.getRoomById(event.getLocationId());
+                if (room != null) roomNumber = room.getRoomNumber();
+            } catch (Exception ex) {
+                log.warn("Could not fetch room metadata for locationId={}", event.getLocationId());
+            }
+        }
+
         TimetableExecutionRequest ttRequest = new TimetableExecutionRequest(
                 event.getId(),
                 event.getTitle(),
@@ -547,6 +584,8 @@ public class EventServiceImpl implements EventService {
                 event.getDate(),
                 event.getStartPeriod(),
                 event.getEndPeriod(),
+                event.getLocationId(),
+                roomNumber,
                 affectedIds,
                 request.getExecutedBy()
         );
