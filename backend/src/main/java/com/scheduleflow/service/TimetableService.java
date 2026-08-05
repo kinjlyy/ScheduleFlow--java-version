@@ -369,9 +369,10 @@ public class TimetableService {
                 .orElseThrow(() -> new ResourceNotFoundException("Timetable", timetableId));
 
         // ── 2. Create a COPY — original is NEVER modified ───────────────────
-        String eventTag = request.getEventId() != null ? " (Event #" + request.getEventId() + ")" : "";
+        String eventTitleTag = (request.getEventTitle() != null && !request.getEventTitle().isBlank())
+                ? request.getEventTitle() : "Event";
         Timetable copy = new Timetable();
-        copy.setName("Copy of TT #" + timetableId + eventTag);
+        copy.setName("TT" + timetableId + " (" + eventTitleTag + ")");
         copy.setSemester(sourceTimetable.getSemester());
         copy.setAcademicYear(sourceTimetable.getAcademicYear());
         copy.setGeneratedAt(LocalDateTime.now());
