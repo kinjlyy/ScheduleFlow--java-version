@@ -67,6 +67,18 @@ public class EventServiceImpl implements EventService {
         validatePeriods(request.getStartPeriod(), request.getEndPeriod());
 
         Event event = eventMapper.toEntity(request);
+
+        if (event.getTimetableId() == null) {
+            try {
+                Map<String, Object> activeTt = timetableServiceClient.getActiveTimetable();
+                if (activeTt != null && activeTt.get("id") != null) {
+                    event.setTimetableId(Long.valueOf(activeTt.get("id").toString()));
+                }
+            } catch (Exception ex) {
+                log.warn("Could not auto-resolve active timetable ID for event creation: {}", ex.getMessage());
+            }
+        }
+
         Event saved = eventRepository.save(event);
 
         if (Boolean.TRUE.equals(request.getSyncWithTimetable())) {
@@ -577,6 +589,11 @@ public class EventServiceImpl implements EventService {
         impactReq.setEventId(event.getId());
         ImpactAnalysisResponse impactAnalysis = generateImpactAnalysis(impactReq);
         TimetableImpactResponse impact = impactAnalysis.getImpact();
+
+        if (event.getTimetableId() == null && impactAnalysis != null && impactAnalysis.getTimetableId() != null) {
+            event.setTimetableId(impactAnalysis.getTimetableId());
+            eventRepository.save(event);
+        }
 
         List<Long> affectedIds = impact != null && impact.getAffectedLectures() != null
                 ? impact.getAffectedLectures().stream().map(ImpactedLectureResponse::getId).toList()
