@@ -97,13 +97,10 @@
         </dependency>
 
         <!-- Flyway: versioned SQL migrations for constraint management -->
+        <!-- flyway-core alone is sufficient for PostgreSQL with Flyway 9.x (Spring Boot 3.2.0 managed) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
     </dependencies>
 
