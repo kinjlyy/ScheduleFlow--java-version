@@ -1,0 +1,5 @@
+-- V1 Baseline: Schema already created and managed by Hibernate (ddl-auto=update).
+-- This migration exists solely to establish a Flyway baseline so that subsequent
+-- versioned migrations (V2+) can apply constraint changes without Flyway trying
+-- to re-create existing tables.
+-- DO NOT add DDL here.
