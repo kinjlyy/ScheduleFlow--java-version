@@ -61,12 +61,27 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventResponse createEvent(CreateEventRequest request) {
-        log.info("Creating event: title={}, category={}", request.getTitle(), request.getEventCategory());
+        log.info("Creating event: title={}, category={}, syncWithTimetable={}",
+                request.getTitle(), request.getEventCategory(), request.getSyncWithTimetable());
 
         validatePeriods(request.getStartPeriod(), request.getEndPeriod());
 
         Event event = eventMapper.toEntity(request);
         Event saved = eventRepository.save(event);
+
+        if (Boolean.TRUE.equals(request.getSyncWithTimetable())) {
+            log.info("syncWithTimetable is TRUE for event id={}. Triggering timetable synchronization pipeline...", saved.getId());
+            try {
+                ExecutionStrategy strategy = request.getExecutionStrategy() != null
+                        ? request.getExecutionStrategy()
+                        : ExecutionStrategy.RESCHEDULE_AND_CANCEL;
+                String createdBy = request.getCreatedBy() != null ? request.getCreatedBy() : "Admin";
+                executeStrategy(saved.getId(), new ExecutionRequest(strategy, createdBy));
+                saved = eventRepository.findById(saved.getId()).orElse(saved);
+            } catch (Exception ex) {
+                log.error("Failed to execute timetable synchronization for event id={}: {}", saved.getId(), ex.getMessage(), ex);
+            }
+        }
 
         log.info("Event created successfully: id={}", saved.getId());
         return eventMapper.toResponse(saved);

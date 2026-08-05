@@ -248,7 +248,7 @@ export default function App() {
       <EventsPage
         token={token}
         onBack={() => setAppView('dashboard')}
-        onTimetableRefreshed={() => {}}
+        onTimetableRefreshed={() => setAppView('my-timetables')}
       />
     );
   }

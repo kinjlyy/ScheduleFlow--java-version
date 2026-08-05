@@ -6,8 +6,10 @@ import {
 import { fetchRooms } from '../api/roomApi.js';
 import styles from './EventsPage.module.css';
 
-const EVENT_CATEGORIES = ['GENERAL', 'ROOM_RESERVATION', 'ACADEMIC_EVENT'];
-const EVENT_TYPES      = ['LECTURE', 'EXAM', 'WORKSHOP', 'SEMINAR', 'HOLIDAY', 'OTHER'];
+// EventCategory — must match EventCategory.java exactly (GENERAL | ROOM_RESERVATION | TIMETABLE_EVENT)
+const EVENT_CATEGORIES = ['GENERAL', 'ROOM_RESERVATION', 'TIMETABLE_EVENT'];
+// EventType — must match EventType.java exactly (no HOLIDAY)
+const EVENT_TYPES      = ['LECTURE', 'MEETING', 'SEMINAR', 'WORKSHOP', 'CEREMONY', 'EXAM', 'SPORTS', 'CULTURAL', 'OTHER'];
 const EVENT_STATUSES   = ['DRAFT', 'SCHEDULED', 'IMPACT_ANALYZED', 'READY_FOR_EXECUTION', 'EXECUTING', 'COMPLETED', 'FAILED', 'CANCELLED'];
 
 const DEFAULT_FALLBACK_ROOMS = [
@@ -25,7 +27,7 @@ const EMPTY_EVENT_FORM = {
   title: '', description: '', eventType: 'LECTURE', eventCategory: 'GENERAL',
   date: '', startPeriod: 1, endPeriod: 2, locationId: '', locationType: 'CLASSROOM',
   timetableId: '', organizer: '', createdBy: 'Admin',
-  syncWithTimetable: false
+  syncWithTimetable: false,
 };
 
 export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
@@ -163,10 +165,9 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
         locationId: eventForm.locationId ? Number(eventForm.locationId) : null,
         timetableId: eventForm.timetableId ? Number(eventForm.timetableId) : null,
         startPeriod: Number(eventForm.startPeriod),
-        endPeriod: Number(eventForm.endPeriod)
+        endPeriod: Number(eventForm.endPeriod),
+        syncWithTimetable: Boolean(eventForm.syncWithTimetable)
       };
-      // Remove UI-only field before sending to backend
-      delete payload.syncWithTimetable;
 
       // Call API directly so we can inspect the response status before the
       // eventApi helper throws and discards structured JSON.
@@ -526,7 +527,7 @@ export default function EventsPage({ token, onBack, onTimetableRefreshed }) {
 
               {/* ORGANIZER */}
               <div className={styles.form_group}>
-                <label>ORGANIZER</label>
+                <label>ORGANIZER *</label>
                 <input
                   value={eventForm.organizer}
                   className={fieldErrors.organizer ? styles.input_error : ''}

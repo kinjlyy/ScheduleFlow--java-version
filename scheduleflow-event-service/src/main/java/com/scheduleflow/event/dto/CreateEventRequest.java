@@ -51,6 +51,8 @@ public class CreateEventRequest {
     @Size(max = 200, message = "CreatedBy must not exceed 200 characters")
     private String createdBy;
 
+    private Boolean syncWithTimetable;
+
     public CreateEventRequest() {}
 
     public String getTitle() { return title; }
@@ -94,4 +96,7 @@ public class CreateEventRequest {
 
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public Boolean getSyncWithTimetable() { return syncWithTimetable; }
+    public void setSyncWithTimetable(Boolean syncWithTimetable) { this.syncWithTimetable = syncWithTimetable; }
 }

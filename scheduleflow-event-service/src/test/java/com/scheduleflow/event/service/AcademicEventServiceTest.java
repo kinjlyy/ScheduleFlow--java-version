@@ -303,4 +303,39 @@ class AcademicEventServiceTest {
         assertEquals("admin", history.getExecutedBy());
         assertEquals("Rescheduled 2, cancelled 1", history.getExecutionSummary());
     }
+
+    @Test
+    @DisplayName("10. createEvent with syncWithTimetable=true automatically invokes executeStrategy and timetable sync")
+    void createEvent_withSyncWithTimetable_invokesExecution() {
+        CreateEventRequest req = new CreateEventRequest();
+        req.setTitle("Sync Test Event");
+        req.setEventType(EventType.LECTURE);
+        req.setEventCategory(EventCategory.TIMETABLE_EVENT);
+        req.setDate(LocalDate.now().plusDays(2));
+        req.setStartPeriod(1);
+        req.setEndPeriod(2);
+        req.setOrganizer("Dr. Smith");
+        req.setSyncWithTimetable(true);
+
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> {
+            Event e = inv.getArgument(0);
+            e.setId(200L);
+            return e;
+        });
+        when(eventRepository.findById(200L)).thenReturn(Optional.of(academicEvent));
+        when(timetableServiceClient.getImpactedLectures(any(), any(), anyInt(), anyInt(), any()))
+                .thenReturn(mockImpact);
+
+        TimetableExecutionResultResponse ttResult = new TimetableExecutionResultResponse();
+        ttResult.setStatus("SUCCESS");
+        ttResult.setSummary("Execution complete — new TT #22 created");
+        ttResult.setRescheduledCount(2);
+        ttResult.setCancelledCount(0);
+        when(timetableServiceClient.executeEventImpact(any(), any())).thenReturn(ttResult);
+
+        EventResponse resp = eventService.createEvent(req);
+
+        assertNotNull(resp);
+        verify(timetableServiceClient, times(1)).executeEventImpact(any(), any());
+    }
 }
