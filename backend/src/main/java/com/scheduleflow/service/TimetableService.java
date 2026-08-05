@@ -364,11 +364,10 @@ public class TimetableService {
 
     @Transactional
     public TimetableExecutionResultDTO executeEventImpact(Long timetableId, TimetableExecutionRequest request) {
-        // ── 1. Load the source (original) timetable ─────────────────────────
+        // ── STEP 1: Load active timetable & clone into a new timetable version ──
         Timetable sourceTimetable = timetableRepository.findById(timetableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Timetable", timetableId));
 
-        // ── 2. Create a COPY — original is NEVER modified ───────────────────
         String eventTitleTag = (request.getEventTitle() != null && !request.getEventTitle().isBlank())
                 ? request.getEventTitle() : "Event";
         Timetable copy = new Timetable();
@@ -381,7 +380,7 @@ public class TimetableService {
         copy.setCreatedAt(LocalDateTime.now());
         copy = timetableRepository.save(copy);
 
-        // ── 3. Clone ALL lectures from source into the copy ──────────────────
+        // Clone all lectures from source into the copy timetable
         List<Lecture> sourceLectures = lectureRepository.findByTimetableId(sourceTimetable.getId());
         List<Lecture> clonedLectures = new ArrayList<>();
         for (Lecture src : sourceLectures) {
@@ -401,119 +400,199 @@ public class TimetableService {
         }
         clonedLectures = lectureRepository.saveAll(clonedLectures);
 
-        // Build a map: original lecture ID -> cloned lecture (for affected-ID lookup)
+        // Map original lecture ID to cloned lecture
         Map<Long, Lecture> originalToClone = new HashMap<>();
         for (int i = 0; i < sourceLectures.size(); i++) {
             originalToClone.put(sourceLectures.get(i).getId(), clonedLectures.get(i));
         }
 
-        // ── 4. Resolve which CLONED lectures correspond to affected IDs ──────
+        // Event timing parameters
+        String eventDay = request.getDate() != null ? request.getDate().getDayOfWeek().name() : "MONDAY";
+        int startPeriod = request.getStartPeriod() != null ? request.getStartPeriod() : 1;
+        int endPeriod = request.getEndPeriod() != null ? request.getEndPeriod() : startPeriod;
+        int startSlot = Math.max(0, startPeriod - 1);
+        int endSlot = Math.max(startSlot, endPeriod - 1);
+
+        // ── STEP 2: Identify every lecture that overlaps with the event period ──
         List<Long> affectedIds = request.getAffectedLectureIds() != null ? request.getAffectedLectureIds() : List.of();
-        List<Lecture> targetLectures = affectedIds.stream()
-                .map(originalToClone::get)
-                .filter(Objects::nonNull)
+        List<Lecture> displacedLectures;
+        if (!affectedIds.isEmpty()) {
+            displacedLectures = affectedIds.stream()
+                    .map(originalToClone::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            displacedLectures = clonedLectures.stream()
+                    .filter(l -> l.getDay().equalsIgnoreCase(eventDay)
+                              && l.getLectureSlot() >= startSlot
+                              && l.getLectureSlot() <= endSlot)
+                    .collect(Collectors.toList());
+        }
+
+        // ── STEPS 3–7: Build occupancy maps and attempt to RESCHEDULE each displaced lecture ──
+        // Build set of lectures NOT displaced in the copy timetable
+        Set<Long> displacedIds = displacedLectures.stream().map(Lecture::getId).collect(Collectors.toSet());
+        List<Lecture> nonDisplacedLectures = clonedLectures.stream()
+                .filter(l -> !displacedIds.contains(l.getId()))
                 .collect(Collectors.toList());
+
+        // Dynamic Occupancy Sets for tracking conflicts: "DAY:SLOT:KEY"
+        Set<String> sectionOccupancy = new HashSet<>();
+        Set<String> teacherOccupancy = new HashSet<>();
+        Set<String> roomOccupancy    = new HashSet<>();
+
+        for (Lecture l : nonDisplacedLectures) {
+            String dayKey = l.getDay().toUpperCase();
+            int slot = l.getLectureSlot();
+            sectionOccupancy.add(dayKey + ":" + slot + ":" + l.getSectionId());
+            if (l.getTeacherId() != null) {
+                teacherOccupancy.add(dayKey + ":" + slot + ":" + l.getTeacherId());
+            }
+            if (l.getRoomId() != null) {
+                roomOccupancy.add(dayKey + ":" + slot + ":" + l.getRoomId());
+            }
+        }
+
+        // Also reserve event slot across all sections so no rescheduled lecture goes into the event slot
+        Set<String> distinctSections = clonedLectures.stream().map(Lecture::getSectionId).collect(Collectors.toSet());
+        if (distinctSections.isEmpty()) distinctSections.add("Section 1");
+
+        for (String secId : distinctSections) {
+            for (int s = startSlot; s <= endSlot; s++) {
+                sectionOccupancy.add(eventDay.toUpperCase() + ":" + s + ":" + secId);
+            }
+        }
+
+        // Ordered candidate slots AFTER the event (Priority: 1. Same day after event, 2. Subsequent days)
+        List<DaySlot> candidateSlots = buildCandidateSlotsAfterEvent(eventDay, endSlot);
 
         List<Long> rescheduledIds = new ArrayList<>();
         List<Long> cancelledIds   = new ArrayList<>();
         List<String> warnings     = new ArrayList<>();
 
-        String strategy = request.getExecutionStrategy() != null ? request.getExecutionStrategy() : "CANCEL_ALL";
+        for (Lecture l : displacedLectures) {
+            if (l.getLectureType() == LectureType.LAB) {
+                warnings.add("Lab lecture " + l.getSubjectId() + " (Section " + l.getSectionId() + ") cannot be rescheduled — cancelled.");
+                cancelledIds.add(l.getId());
+                lectureRepository.delete(l);
+                continue;
+            }
 
-        // ── 5. Apply strategy on the COPY's lectures ─────────────────────────
-        if ("CANCEL_ALL".equalsIgnoreCase(strategy)) {
-            for (Lecture l : targetLectures) {
+            boolean rescheduled = false;
+            for (DaySlot candidate : candidateSlots) {
+                String cDay = candidate.day.toUpperCase();
+                int cSlot   = candidate.slot;
+
+                String secKey  = cDay + ":" + cSlot + ":" + l.getSectionId();
+                String tchrKey = l.getTeacherId() != null ? cDay + ":" + cSlot + ":" + l.getTeacherId() : null;
+                String roomKey = l.getRoomId() != null    ? cDay + ":" + cSlot + ":" + l.getRoomId()    : null;
+
+                // Constraint Check (Step 4): Section free, Teacher free, Room free
+                boolean secFree  = !sectionOccupancy.contains(secKey);
+                boolean tchrFree = tchrKey == null || !teacherOccupancy.contains(tchrKey);
+                boolean roomFree = roomKey == null || !roomOccupancy.contains(roomKey);
+
+                if (secFree && tchrFree && roomFree) {
+                    // STEP 5: MOVE the lecture to valid slot
+                    l.setDay(candidate.day);
+                    l.setLectureSlot(cSlot);
+                    lectureRepository.save(l);
+
+                    // Update occupancy state
+                    sectionOccupancy.add(secKey);
+                    if (tchrKey != null) teacherOccupancy.add(tchrKey);
+                    if (roomKey != null) roomOccupancy.add(roomKey);
+
+                    rescheduledIds.add(l.getId());
+                    rescheduled = true;
+                    log.info("Rescheduled displaced lecture {} ({}) to {} slot {}", l.getId(), l.getSubjectId(), candidate.day, cSlot);
+                    break;
+                }
+            }
+
+            if (!rescheduled) {
+                // STEP 7: Mark CANCELLED only after exhausting all future slots
+                warnings.add("No valid free slot after event for " + l.getSubjectId() + " (Section " + l.getSectionId() + ") — cancelled.");
                 cancelledIds.add(l.getId());
                 lectureRepository.delete(l);
             }
-        } else if ("RESCHEDULE_AND_CANCEL".equalsIgnoreCase(strategy)) {
-            List<Lecture> allCopyLectures = lectureRepository.findByTimetableId(copy.getId());
-            Set<String> takenSlots = allCopyLectures.stream()
-                    .map(l -> l.getDay() + ":" + l.getLectureSlot() + ":" + l.getSectionId())
-                    .collect(Collectors.toSet());
+        }
 
-            for (Lecture l : targetLectures) {
-                if (l.getLectureType() == LectureType.LAB) {
-                    warnings.add("Lab lecture " + l.getSubjectId() + " (Section " + l.getSectionId() + ") cannot be rescheduled — cancelled.");
-                    cancelledIds.add(l.getId());
-                    lectureRepository.delete(l);
-                    continue;
-                }
+        // ── STEP 8: Insert the EVENT lectures into the requested time slot ──
+        String eventTitle = request.getEventTitle() != null ? request.getEventTitle() : "Event #" + request.getEventId();
+        String organizer  = request.getExecutedBy() != null  ? request.getExecutedBy()  : "EVENT";
 
-                boolean rescheduled = false;
-                for (String day : DAYS) {
-                    for (int slot = 1; slot <= 6; slot++) {
-                        String slotKey = day + ":" + slot + ":" + l.getSectionId();
-                        if (!takenSlots.contains(slotKey)) {
-                            l.setDay(day);
-                            l.setLectureSlot(slot);
-                            lectureRepository.save(l);
-                            takenSlots.add(slotKey);
-                            rescheduledIds.add(l.getId());
-                            rescheduled = true;
-                            break;
-                        }
-                    }
-                    if (rescheduled) break;
-                }
-
-                if (!rescheduled) {
-                    warnings.add("No free slot for " + l.getSubjectId() + " (Section " + l.getSectionId() + ") — cancelled.");
-                    cancelledIds.add(l.getId());
-                    lectureRepository.delete(l);
-                }
+        for (String secId : distinctSections) {
+            for (int s = startSlot; s <= endSlot; s++) {
+                Lecture eventLec = new Lecture();
+                eventLec.setTimetable(copy);
+                eventLec.setSectionId(secId);
+                eventLec.setSubjectId("EVENT");
+                eventLec.setTeacherId(organizer);
+                eventLec.setRoomId(request.getLocationId());
+                eventLec.setRoomNumber(request.getRoomNumber());
+                eventLec.setDay(eventDay);
+                eventLec.setLectureSlot(s);
+                eventLec.setLectureType(LectureType.EVENT);
+                eventLec.setEventId(request.getEventId());
+                eventLec.setEventName(eventTitle);
+                eventLec.setCreatedAt(LocalDateTime.now());
+                lectureRepository.save(eventLec);
             }
         }
 
-        // ── 5.5 Insert Event entries into all sections on the COPY for event's slot ──
-        if (request.getEventId() != null || request.getEventTitle() != null) {
-            String eventDay = request.getDate() != null ? request.getDate().getDayOfWeek().name() : "MONDAY";
-            int startPeriod = request.getStartPeriod() != null ? request.getStartPeriod() : 1;
-            int endPeriod = request.getEndPeriod() != null ? request.getEndPeriod() : startPeriod;
-
-            Set<String> distinctSections = clonedLectures.stream().map(Lecture::getSectionId).collect(Collectors.toSet());
-            if (distinctSections.isEmpty()) {
-                distinctSections.add("Section 1");
-            }
-
-            String eventTitle = request.getEventTitle() != null ? request.getEventTitle() : "Event #" + request.getEventId();
-            String organizer = request.getExecutedBy() != null ? request.getExecutedBy() : "EVENT";
-
-            for (String secId : distinctSections) {
-                for (int p = startPeriod; p <= endPeriod; p++) {
-                    int slot = p - 1; // 1-indexed period to 0-indexed slot
-                    Lecture eventLec = new Lecture();
-                    eventLec.setTimetable(copy);
-                    eventLec.setSectionId(secId);
-                    eventLec.setSubjectId("EVENT"); // Normalized: event title stored in eventName/eventId
-                    eventLec.setTeacherId(organizer);
-                    eventLec.setRoomId(request.getLocationId());
-                    eventLec.setRoomNumber(request.getRoomNumber());
-                    eventLec.setDay(eventDay);
-                    eventLec.setLectureSlot(slot);
-                    eventLec.setLectureType(LectureType.EVENT);
-                    eventLec.setEventId(request.getEventId());
-                    eventLec.setEventName(eventTitle);
-                    eventLec.setCreatedAt(LocalDateTime.now());
-                    lectureRepository.save(eventLec);
-                }
-            }
-        }
-
-        // ── 6. Activate copy, archive source (original untouched data-wise, status only changes) ──
+        // Activate copy, archive source
         copy.setStatus(TimetableStatus.ACTIVE);
         timetableRepository.save(copy);
         sourceTimetable.setStatus(TimetableStatus.ARCHIVED);
         timetableRepository.save(sourceTimetable);
 
         String summary = String.format(
-                "Execution complete — strategy: %s. New TT #%d created (copy of TT #%d). %d rescheduled, %d cancelled. Original TT #%d archived.",
-                strategy, copy.getId(), timetableId, rescheduledIds.size(), cancelledIds.size(), timetableId);
+                "Event execution complete. New TT #%d created (copy of TT #%d). %d rescheduled, %d cancelled. Original TT #%d archived.",
+                copy.getId(), timetableId, rescheduledIds.size(), cancelledIds.size(), timetableId);
 
         return new TimetableExecutionResultDTO(
                 "SUCCESS", summary, rescheduledIds.size(), cancelledIds.size(),
                 rescheduledIds, cancelledIds, warnings
         );
+    }
+
+    private static class DaySlot {
+        final String day;
+        final int slot;
+        DaySlot(String day, int slot) {
+            this.day = day;
+            this.slot = slot;
+        }
+    }
+
+    private List<DaySlot> buildCandidateSlotsAfterEvent(String eventDay, int endSlot) {
+        List<DaySlot> candidates = new ArrayList<>();
+        int totalSlots = 6;
+
+        int eventDayIdx = -1;
+        for (int i = 0; i < DAYS.length; i++) {
+            if (DAYS[i].equalsIgnoreCase(eventDay)) {
+                eventDayIdx = i;
+                break;
+            }
+        }
+        if (eventDayIdx == -1) eventDayIdx = 0;
+
+        // 1. Same day, slots strictly AFTER endSlot
+        for (int slot = endSlot + 1; slot < totalSlots; slot++) {
+            candidates.add(new DaySlot(DAYS[eventDayIdx], slot));
+        }
+
+        // 2. Subsequent days of the week in chronological order
+        for (int offset = 1; offset < DAYS.length; offset++) {
+            int dayIdx = (eventDayIdx + offset) % DAYS.length;
+            for (int slot = 0; slot < totalSlots; slot++) {
+                candidates.add(new DaySlot(DAYS[dayIdx], slot));
+            }
+        }
+
+        return candidates;
     }
 
     private TimetableDTO toTimetableDTO(Timetable t) {
