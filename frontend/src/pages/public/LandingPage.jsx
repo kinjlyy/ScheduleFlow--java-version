@@ -339,12 +339,6 @@ export default function LandingPage({ onGetStarted }) {
 
       <DeveloperSection />
 
-      {/* ── CTA + Footer ── */}
-      <CtaFooter onGetStarted={onGetStarted} />
-    </div>
-  );
-}
-
 /* ─────────────────────────────────────────────
    Developer / Founder Section  — Animated Avatar
 ───────────────────────────────────────────── */
